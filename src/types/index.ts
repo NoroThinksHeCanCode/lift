@@ -128,6 +128,9 @@ export interface PRNotification {
   value: number;
   previousValue: number;
   unit: 'lbs' | 'kg';
+  weight?: number;
+  reps?: number;
+  estimated1RM?: number;
   timestamp: number;
 }
 
@@ -144,12 +147,15 @@ export interface OverloadPrompt {
 export interface UserSettings {
   unit: 'lbs' | 'kg';
   defaultRestSeconds: number;
+  defaultRepRangeMin: number;
+  defaultRepRangeMax: number;
   barWeightLbs: number;
   barWeightKg: number;
   hapticsEnabled: boolean;
   autoRestTimer: boolean;
   notificationBarEnabled: boolean;
   rpeScale: 'RPE' | 'RIR'; // 'RPE' (1-10) or 'RIR' (0-4)
+  userName?: string;
 }
 
 export interface ChartDataPoint {

@@ -40,7 +40,7 @@ jobs:
       - name: 📤 Upload APK Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: Lift-v1.0.3-release
+          name: Lift-v1.0.4-release
           path: android/app/build/outputs/apk/release/app-release.apk
           if-no-files-found: error
 
@@ -48,8 +48,9 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          cp android/app/build/outputs/apk/release/app-release.apk Lift-v1.0.3.apk
-          gh release upload v1.0.0 Lift-v1.0.3.apk#Lift-v1.0.0.apk --clobber || true
-          gh release upload v1.0.1 Lift-v1.0.3.apk#Lift-v1.0.1.apk --clobber || true
-          gh release upload v1.0.2 Lift-v1.0.3.apk#Lift-v1.0.2.apk --clobber || true
-          gh release create v1.0.3 Lift-v1.0.3.apk --title "Lift v1.0.3 (Android APK)" --notes "Lift v1.0.3: Interactive home screen widget logging (+/- reps & weight, LOG SET button), workout-wide rest timer, workout-wide rep range with toggle menu, fixed digit padding & removed presets, exercise notes menu, joint action exercise classification tags, AMOLED pitch black Instagram dark mode theme, removed Google Health Connect." || true
+          cp android/app/build/outputs/apk/release/app-release.apk Lift-v1.0.4.apk
+          gh release upload v1.0.0 Lift-v1.0.4.apk#Lift-v1.0.0.apk --clobber || true
+          gh release upload v1.0.1 Lift-v1.0.4.apk#Lift-v1.0.1.apk --clobber || true
+          gh release upload v1.0.2 Lift-v1.0.4.apk#Lift-v1.0.2.apk --clobber || true
+          gh release upload v1.0.3 Lift-v1.0.4.apk#Lift-v1.0.3.apk --clobber || true
+          gh release create v1.0.4 Lift-v1.0.4.apk --title "L!FT v1.0.4 (Android APK)" --notes "L!FT v1.0.4: PR floating top tab with calculated Est. 1RM & haptics; plate calculator available inventory limits (removed side buttons); unified tools rest timer menu with workout -30s/+30s stepper; machine equipment category; global rep range in tools; pitch black AMOLED startup splash screen; official L!FT icon & branding; first launch name prompt with dynamic greeting & READY TO L!FT?." || true

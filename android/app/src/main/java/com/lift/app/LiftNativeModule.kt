@@ -53,7 +53,7 @@ class LiftNativeModule(private val reactContext: ReactApplicationContext) : Reac
 
             val builder = NotificationCompat.Builder(reactContext, CHANNEL_ID)
                 .setSmallIcon(R.mipmap.ic_launcher)
-                .setContentTitle("🏋️ Lift: $title")
+                .setContentTitle("🏋️ L!FT: $title")
                 .setContentText(if (exercise.isNotEmpty()) "$exercise • $setInfo" else setInfo)
                 .setOngoing(true)
                 .setOnlyAlertOnce(true)

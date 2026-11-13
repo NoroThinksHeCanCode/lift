@@ -16,12 +16,23 @@ import { useWorkout } from '../context/WorkoutContext';
 import { deleteTemplate, getAllTemplates, saveTemplate } from '../db/database';
 import { ExerciseSelectorModal } from '../components/exercises/ExerciseSelectorModal';
 import { Badge } from '../components/common/Badge';
+import { NamePromptModal } from '../components/common/NamePromptModal';
+import { useSettings } from '../context/SettingsContext';
 import { triggerHapticSelection, triggerHapticSuccess } from '../utils/haptics';
 
 export const WorkoutsScreen: React.FC = () => {
   const { isWorkoutActive, startWorkout, setIsWorkoutModalVisible } = useWorkout();
+  const { settings, updateSettings } = useSettings();
   const [templates, setTemplates] = useState<Template[]>([]);
   const [showCreateTemplateModal, setShowCreateTemplateModal] = useState(false);
+
+  const getGreeting = () => {
+    const hour = new Date().getHours();
+    const name = settings.userName ? `, ${settings.userName}` : '';
+    if (hour >= 5 && hour < 12) return `Good Morning${name}`;
+    if (hour >= 12 && hour < 17) return `Good Afternoon${name}`;
+    return `Good Evening${name}`;
+  };
 
   // Template creation state
   const [templateName, setTemplateName] = useState('');
@@ -110,8 +121,8 @@ export const WorkoutsScreen: React.FC = () => {
       {/* Screen Header */}
       <View style={styles.header}>
         <View>
-          <Text style={styles.headerSubtitle}>READY TO LIFT?</Text>
-          <Text style={styles.headerTitle}>Workouts & Routines</Text>
+          <Text style={styles.headerSubtitle}>READY TO L!FT?</Text>
+          <Text style={styles.headerTitle}>{getGreeting()}</Text>
         </View>
       </View>
 
@@ -321,6 +332,12 @@ export const WorkoutsScreen: React.FC = () => {
           />
         </View>
       </Modal>
+
+      {/* Name Prompt Modal on First Install / Update */}
+      <NamePromptModal
+        visible={!settings.userName}
+        onSave={(name) => updateSettings({ userName: name })}
+      />
     </View>
   );
 };

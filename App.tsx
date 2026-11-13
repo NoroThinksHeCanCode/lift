@@ -110,7 +110,7 @@ export default function App() {
       <View style={styles.loadingScreen}>
         <StatusBar style="light" />
         <Ionicons name="barbell" size={54} color={THEME.colors.primary} />
-        <Text style={styles.loadingTitle}>Lift</Text>
+        <Text style={styles.loadingTitle}>L!FT</Text>
         <ActivityIndicator size="small" color={THEME.colors.primary} style={{ marginTop: 16 }} />
       </View>
     );

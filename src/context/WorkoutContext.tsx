@@ -13,7 +13,8 @@ import {
   checkPersonalRecord,
   getPreviousSetsForExercise,
   saveCompletedWorkout,
-  updateExerciseNotes
+  updateExerciseNotes,
+  calculateEstimated1RM
 } from '../db/database';
 import { triggerHapticPR, triggerHapticTimerComplete, triggerHapticSuccess } from '../utils/haptics';
 import { useSettings } from './SettingsContext';
@@ -326,6 +327,9 @@ export const WorkoutProvider: React.FC<{ children: React.ReactNode }> = ({ child
     const startTime = Date.now();
     workoutStartRef.current = startTime;
     setWorkoutRestSeconds(settings.defaultRestSeconds || 90);
+    const initialRepMin = settings.defaultRepRangeMin || 8;
+    const initialRepMax = settings.defaultRepRangeMax || 12;
+    setWorkoutRepRangeState({ min: initialRepMin, max: initialRepMax });
 
     const newWorkout: Workout = {
       id: workoutId,
@@ -409,8 +413,8 @@ export const WorkoutProvider: React.FC<{ children: React.ReactNode }> = ({ child
         exercise,
         selectedMachine: chosenMachine,
         notes: exercise.notes || '',
-        targetRepsMin: isWorkoutRepRangeLocked ? workoutRepRange.min : 8,
-        targetRepsMax: isWorkoutRepRangeLocked ? workoutRepRange.max : 12,
+        targetRepsMin: settings.defaultRepRangeMin || 8,
+        targetRepsMax: settings.defaultRepRangeMax || 12,
         sets: [initialSet],
         previousSets: prevSets
       }
@@ -543,6 +547,8 @@ export const WorkoutProvider: React.FC<{ children: React.ReactNode }> = ({ child
           triggerHapticPR();
         }
 
+        const est1RM = calculateEstimated1RM(targetSet.weight, targetSet.reps);
+
         const prNotification: PRNotification = {
           exerciseId,
           exerciseName: targetExerciseSession.selectedMachine
@@ -552,6 +558,9 @@ export const WorkoutProvider: React.FC<{ children: React.ReactNode }> = ({ child
           value: prResult.type === 'reps' ? targetSet.reps : targetSet.weight,
           previousValue: prResult.previousValue || 0,
           unit: settings.unit,
+          weight: targetSet.weight,
+          reps: targetSet.reps,
+          estimated1RM: est1RM,
           timestamp: Date.now()
         };
 

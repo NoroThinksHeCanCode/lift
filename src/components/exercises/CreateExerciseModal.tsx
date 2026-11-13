@@ -17,7 +17,7 @@ const MUSCLE_GROUPS: MuscleGroup[] = [
 ];
 
 const EQUIPMENTS: Equipment[] = [
-  'Barbell', 'Dumbbell', 'Machine', 'Cable', 'Bodyweight', 'Smith Machine', 'Other'
+  'Machine', 'Barbell', 'Dumbbell', 'Cable', 'Smith Machine', 'Bodyweight', 'Other'
 ];
 
 const JOINT_ACTIONS: JointAction[] = [

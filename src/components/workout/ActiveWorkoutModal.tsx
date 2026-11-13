@@ -20,6 +20,7 @@ import { RestTimerPickerModal } from './RestTimerPickerModal';
 import { RepRangePickerModal } from './RepRangePickerModal';
 import { ExerciseNoteModal } from './ExerciseNoteModal';
 import { ProgressiveOverloadModal } from './ProgressiveOverloadModal';
+import { PRCelebrationModal } from './PRCelebrationModal';
 import { MachineSelectorModal } from '../exercises/MachineSelectorModal';
 import { ExerciseSelectorModal } from '../exercises/ExerciseSelectorModal';
 import { PlateCalculatorModal } from '../plates/PlateCalculatorModal';
@@ -199,39 +200,41 @@ export const ActiveWorkoutModal: React.FC = () => {
           </View>
         </View>
 
-        {/* Workout-Wide Settings Toolbar (Rest & Rep Range) */}
+        {/* Workout Rest Timer Quick Adjust Toolbar */}
         <View style={styles.workoutToolbar}>
-          {/* Workout Rest Timer setting */}
-          <TouchableOpacity
-            style={styles.toolbarPill}
-            onPress={() => {
-              triggerHapticSelection();
-              setShowRestPicker(true);
-            }}
-          >
-            <Ionicons name="timer-outline" size={13} color={THEME.colors.cyan} />
-            <Text style={styles.toolbarPillText}>Rest: {workoutRestSeconds}s</Text>
-            <Ionicons name="chevron-down" size={10} color={THEME.colors.cyan} />
-          </TouchableOpacity>
+          <View style={styles.restStepperGroup}>
+            <TouchableOpacity
+              style={styles.restStepBtn}
+              onPress={() => {
+                triggerHapticSelection();
+                setWorkoutRestSeconds(Math.max(15, workoutRestSeconds - 30));
+              }}
+            >
+              <Text style={styles.restStepText}>-30s</Text>
+            </TouchableOpacity>
 
-          {/* Workout Rep Range toggle menu */}
-          <TouchableOpacity
-            style={[styles.toolbarPill, isWorkoutRepRangeLocked && styles.toolbarPillActive]}
-            onPress={() => {
-              triggerHapticSelection();
-              setRepRangeTarget({
-                exerciseName: 'Entire Workout Rep Range',
-                min: workoutRepRange.min,
-                max: workoutRepRange.max
-              });
-            }}
-          >
-            <Ionicons name="flag-outline" size={13} color={THEME.colors.primary} />
-            <Text style={[styles.toolbarPillText, isWorkoutRepRangeLocked && { color: THEME.colors.primary }]}>
-              Target: {workoutRepRange.min}–{workoutRepRange.max} reps
-            </Text>
-            <Ionicons name="chevron-down" size={10} color={THEME.colors.primary} />
-          </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.restCenterPill}
+              onPress={() => {
+                triggerHapticSelection();
+                setShowRestPicker(true);
+              }}
+            >
+              <Ionicons name="timer-outline" size={14} color={THEME.colors.cyan} />
+              <Text style={styles.restCenterText}>Rest: {workoutRestSeconds}s</Text>
+              <Ionicons name="chevron-down" size={11} color={THEME.colors.cyan} />
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.restStepBtn}
+              onPress={() => {
+                triggerHapticSelection();
+                setWorkoutRestSeconds(workoutRestSeconds + 30);
+              }}
+            >
+              <Text style={styles.restStepText}>+30s</Text>
+            </TouchableOpacity>
+          </View>
         </View>
 
         <ScrollView contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled">
@@ -532,6 +535,9 @@ export const ActiveWorkoutModal: React.FC = () => {
           visible={show1RMCalculator}
           onClose={() => setShow1RMCalculator(false)}
         />
+
+        {/* PR Toast Notification */}
+        <PRCelebrationModal />
       </View>
     </Modal>
   );
@@ -615,6 +621,45 @@ const styles = StyleSheet.create({
     backgroundColor: '#000000',
     borderBottomWidth: 1,
     borderColor: '#1C1C1C'
+  },
+  restStepperGroup: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    flex: 1
+  },
+  restStepBtn: {
+    backgroundColor: '#121212',
+    borderWidth: 1,
+    borderColor: '#262626',
+    borderRadius: 8,
+    paddingHorizontal: 14,
+    paddingVertical: 7,
+    alignItems: 'center',
+    justifyContent: 'center'
+  },
+  restStepText: {
+    color: '#FFFFFF',
+    fontSize: 12,
+    fontWeight: '800'
+  },
+  restCenterPill: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    backgroundColor: '#121212',
+    borderWidth: 1,
+    borderColor: '#262626',
+    borderRadius: 8,
+    paddingVertical: 7,
+    paddingHorizontal: 12
+  },
+  restCenterText: {
+    color: THEME.colors.cyan,
+    fontSize: 13,
+    fontWeight: '700'
   },
   toolbarPill: {
     flexDirection: 'row',

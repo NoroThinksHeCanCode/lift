@@ -7,12 +7,15 @@ const SETTINGS_STORAGE_KEY = '@iron_track_user_settings';
 const DEFAULT_SETTINGS: UserSettings = {
   unit: 'lbs',
   defaultRestSeconds: 90,
+  defaultRepRangeMin: 8,
+  defaultRepRangeMax: 12,
   barWeightLbs: 45,
   barWeightKg: 20,
   hapticsEnabled: true,
   autoRestTimer: true,
   notificationBarEnabled: true,
-  rpeScale: 'RPE'
+  rpeScale: 'RPE',
+  userName: ''
 };
 
 interface SettingsContextValue {

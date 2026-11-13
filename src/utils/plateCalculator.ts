@@ -15,7 +15,28 @@ export interface PlateCalculationResult {
   unit: 'lbs' | 'kg';
 }
 
-const LBS_PLATES: { weight: number; color: string; textColor: string }[] = [
+export type AvailablePlates = Record<number, number>; // weight -> pairs available (count per side)
+
+export const DEFAULT_LBS_INVENTORY: AvailablePlates = {
+  45: 4,
+  35: 2,
+  25: 2,
+  10: 4,
+  5: 2,
+  2.5: 2
+};
+
+export const DEFAULT_KG_INVENTORY: AvailablePlates = {
+  25: 4,
+  20: 4,
+  15: 2,
+  10: 4,
+  5: 4,
+  2.5: 2,
+  1.25: 2
+};
+
+export const LBS_PLATES: { weight: number; color: string; textColor: string }[] = [
   { weight: 45, color: '#3B82F6', textColor: '#FFFFFF' },
   { weight: 35, color: '#EAB308', textColor: '#000000' },
   { weight: 25, color: '#22C55E', textColor: '#000000' },
@@ -24,7 +45,7 @@ const LBS_PLATES: { weight: number; color: string; textColor: string }[] = [
   { weight: 2.5, color: '#334155', textColor: '#F8FAFC' }
 ];
 
-const KG_PLATES: { weight: number; color: string; textColor: string }[] = [
+export const KG_PLATES: { weight: number; color: string; textColor: string }[] = [
   { weight: 25, color: '#EF4444', textColor: '#FFFFFF' },
   { weight: 20, color: '#3B82F6', textColor: '#FFFFFF' },
   { weight: 15, color: '#EAB308', textColor: '#000000' },
@@ -37,9 +58,11 @@ const KG_PLATES: { weight: number; color: string; textColor: string }[] = [
 export function calculatePlates(
   targetWeight: number,
   barWeight: number,
-  unit: 'lbs' | 'kg'
+  unit: 'lbs' | 'kg',
+  availablePlates?: AvailablePlates
 ): PlateCalculationResult {
   const plateDefs = unit === 'lbs' ? LBS_PLATES : KG_PLATES;
+  const inventory = availablePlates || (unit === 'lbs' ? DEFAULT_LBS_INVENTORY : DEFAULT_KG_INVENTORY);
 
   if (targetWeight <= barWeight) {
     return {
@@ -58,16 +81,18 @@ export function calculatePlates(
   const platesPerSide: PlateItem[] = [];
 
   for (const plate of plateDefs) {
-    if (neededPerSide >= plate.weight) {
-      const count = Math.floor(neededPerSide / plate.weight);
-      if (count > 0) {
+    const maxAvailable = inventory[plate.weight] !== undefined ? inventory[plate.weight] : 999;
+    if (maxAvailable > 0 && neededPerSide >= plate.weight) {
+      const neededCount = Math.floor(neededPerSide / plate.weight);
+      const countToLoad = Math.min(neededCount, maxAvailable);
+      if (countToLoad > 0) {
         platesPerSide.push({
           weight: plate.weight,
-          countPerSide: count,
+          countPerSide: countToLoad,
           color: plate.color,
           textColor: plate.textColor
         });
-        neededPerSide = Math.round((neededPerSide - count * plate.weight) * 100) / 100;
+        neededPerSide = Math.round((neededPerSide - countToLoad * plate.weight) * 100) / 100;
       }
     }
   }

@@ -1,7 +1,6 @@
 <resources>
-  <string name="app_name">Lift</string>
+  <string name="app_name">L!FT</string>
   <string name="workout_widget_desc">Track and view active workout, sets, and rest timer directly on your home screen.</string>
-  <string name="health_widget_desc">Track your Fitbit / Google Health readiness score, sleep duration, and daily steps.</string>
   <string name="notification_channel_name">Ongoing Workout</string>
   <string name="notification_channel_desc">Shows active workout timer, exercise, and set controls in the notification panel.</string>
 </resources>

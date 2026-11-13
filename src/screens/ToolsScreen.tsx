@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import {
   View,
   Text,
+  TextInput,
   TouchableOpacity,
   StyleSheet,
   ScrollView,
@@ -23,8 +24,6 @@ export const ToolsScreen: React.FC = () => {
   const [show1RMCalc, setShow1RMCalc] = useState(false);
   const [exporting, setExporting] = useState(false);
   const [importing, setImporting] = useState(false);
-
-  const restPresets = [60, 90, 120, 180];
 
   const handleExportCSV = async () => {
     triggerHapticSelection();
@@ -172,6 +171,138 @@ export const ToolsScreen: React.FC = () => {
         {/* Settings Section */}
         <Text style={[styles.sectionTitle, { marginTop: 12 }]}>PREFERENCES</Text>
 
+        {/* User Profile Name */}
+        <View style={styles.settingCard}>
+          <Text style={styles.settingTitle}>Your Name</Text>
+          <Text style={styles.settingSub}>Used for personalized greetings</Text>
+          <TextInput
+            style={styles.nameInput}
+            value={settings.userName || ''}
+            placeholder="Enter your name..."
+            placeholderTextColor="#737373"
+            onChangeText={(txt: string) => updateSettings({ userName: txt })}
+          />
+        </View>
+
+        {/* Free-Set Rest Timer Menu (Feature 4) */}
+        <View style={styles.settingCard}>
+          <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+            <View>
+              <Text style={styles.settingTitle}>Default Rest Timer</Text>
+              <Text style={styles.settingSub}>Set standard countdown for all workouts</Text>
+            </View>
+            <Text style={styles.restDisplayVal}>{settings.defaultRestSeconds}s</Text>
+          </View>
+
+          <View style={styles.stepperRow}>
+            <TouchableOpacity
+              style={styles.stepBtn}
+              onPress={() => {
+                triggerHapticSelection();
+                updateSettings({ defaultRestSeconds: Math.max(15, settings.defaultRestSeconds - 30) });
+              }}
+            >
+              <Text style={styles.stepBtnText}>-30s</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.stepBtn}
+              onPress={() => {
+                triggerHapticSelection();
+                updateSettings({ defaultRestSeconds: Math.max(15, settings.defaultRestSeconds - 15) });
+              }}
+            >
+              <Text style={styles.stepBtnText}>-15s</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.stepBtn}
+              onPress={() => {
+                triggerHapticSelection();
+                updateSettings({ defaultRestSeconds: settings.defaultRestSeconds + 15 });
+              }}
+            >
+              <Text style={styles.stepBtnText}>+15s</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.stepBtn}
+              onPress={() => {
+                triggerHapticSelection();
+                updateSettings({ defaultRestSeconds: settings.defaultRestSeconds + 30 });
+              }}
+            >
+              <Text style={styles.stepBtnText}>+30s</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+
+        {/* Default Workout Rep Range Menu (Feature 6: All Workouts Together) */}
+        <View style={styles.settingCard}>
+          <Text style={styles.settingTitle}>Default Target Rep Range</Text>
+          <Text style={styles.settingSub}>Applied to all workouts together; hitting the ceiling triggers overload</Text>
+
+          <View style={styles.repRangeControls}>
+            <View style={styles.repBox}>
+              <Text style={styles.repLabel}>MIN REPS</Text>
+              <View style={styles.stepperInline}>
+                <TouchableOpacity
+                  style={styles.miniBtn}
+                  onPress={() => {
+                    triggerHapticSelection();
+                    const next = Math.max(1, (settings.defaultRepRangeMin || 8) - 1);
+                    updateSettings({ defaultRepRangeMin: next });
+                  }}
+                >
+                  <Ionicons name="remove" size={16} color="#FFFFFF" />
+                </TouchableOpacity>
+                <Text style={styles.repVal}>{settings.defaultRepRangeMin || 8}</Text>
+                <TouchableOpacity
+                  style={styles.miniBtn}
+                  onPress={() => {
+                    triggerHapticSelection();
+                    const next = (settings.defaultRepRangeMin || 8) + 1;
+                    const max = Math.max(next, settings.defaultRepRangeMax || 12);
+                    updateSettings({ defaultRepRangeMin: next, defaultRepRangeMax: max });
+                  }}
+                >
+                  <Ionicons name="add" size={16} color="#FFFFFF" />
+                </TouchableOpacity>
+              </View>
+            </View>
+
+            <Text style={styles.dashText}>–</Text>
+
+            <View style={styles.repBox}>
+              <Text style={styles.repLabel}>MAX REPS (TARGET)</Text>
+              <View style={styles.stepperInline}>
+                <TouchableOpacity
+                  style={styles.miniBtn}
+                  onPress={() => {
+                    triggerHapticSelection();
+                    const min = settings.defaultRepRangeMin || 8;
+                    const next = Math.max(min, (settings.defaultRepRangeMax || 12) - 1);
+                    updateSettings({ defaultRepRangeMax: next });
+                  }}
+                >
+                  <Ionicons name="remove" size={16} color="#FFFFFF" />
+                </TouchableOpacity>
+                <Text style={styles.repVal}>{settings.defaultRepRangeMax || 12}</Text>
+                <TouchableOpacity
+                  style={styles.miniBtn}
+                  onPress={() => {
+                    triggerHapticSelection();
+                    const next = (settings.defaultRepRangeMax || 12) + 1;
+                    updateSettings({ defaultRepRangeMax: next });
+                  }}
+                >
+                  <Ionicons name="add" size={16} color="#FFFFFF" />
+                </TouchableOpacity>
+              </View>
+            </View>
+          </View>
+        </View>
+
         {/* RPE vs RIR Scale Toggle (Feature 2) */}
         <View style={styles.settingRow}>
           <View style={{ flex: 1 }}>
@@ -233,36 +364,6 @@ export const ToolsScreen: React.FC = () => {
                 KG
               </Text>
             </TouchableOpacity>
-          </View>
-        </View>
-
-        {/* Default Rest Timer */}
-        <View style={styles.settingCard}>
-          <Text style={styles.settingTitle}>Default Rest Timer</Text>
-          <Text style={styles.settingSub}>Countdown triggered after logging a set</Text>
-          <View style={styles.presetsRow}>
-            {restPresets.map((secs) => (
-              <TouchableOpacity
-                key={secs}
-                style={[
-                  styles.presetBtn,
-                  settings.defaultRestSeconds === secs && styles.presetBtnActive
-                ]}
-                onPress={() => {
-                  triggerHapticSelection();
-                  updateSettings({ defaultRestSeconds: secs });
-                }}
-              >
-                <Text
-                  style={[
-                    styles.presetText,
-                    settings.defaultRestSeconds === secs && styles.presetTextActive
-                  ]}
-                >
-                  {secs >= 60 ? `${secs / 60}m` : `${secs}s`}
-                </Text>
-              </TouchableOpacity>
-            ))}
           </View>
         </View>
 
@@ -451,6 +552,92 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: THEME.colors.textMuted,
     marginTop: 2
+  },
+  nameInput: {
+    backgroundColor: THEME.colors.surfaceElevated,
+    borderWidth: 1,
+    borderColor: THEME.colors.border,
+    borderRadius: 8,
+    color: THEME.colors.textPrimary,
+    fontSize: 14,
+    fontWeight: '600',
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    marginTop: 10
+  },
+  restDisplayVal: {
+    fontSize: 22,
+    fontWeight: '900',
+    color: THEME.colors.cyan
+  },
+  stepperRow: {
+    flexDirection: 'row',
+    gap: 8,
+    marginTop: 12
+  },
+  stepBtn: {
+    flex: 1,
+    backgroundColor: THEME.colors.surfaceElevated,
+    paddingVertical: 10,
+    borderRadius: 8,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: THEME.colors.border
+  },
+  stepBtnText: {
+    color: THEME.colors.textPrimary,
+    fontWeight: '800',
+    fontSize: 13
+  },
+  repRangeControls: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginTop: 12
+  },
+  repBox: {
+    flex: 1,
+    backgroundColor: THEME.colors.surfaceElevated,
+    borderRadius: 8,
+    padding: 10,
+    borderWidth: 1,
+    borderColor: THEME.colors.border,
+    alignItems: 'center'
+  },
+  repLabel: {
+    fontSize: 10,
+    fontWeight: '800',
+    color: THEME.colors.textMuted,
+    letterSpacing: 0.5,
+    marginBottom: 6
+  },
+  stepperInline: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12
+  },
+  miniBtn: {
+    width: 28,
+    height: 28,
+    borderRadius: 6,
+    backgroundColor: THEME.colors.surfaceHighlight,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: THEME.colors.border
+  },
+  repVal: {
+    fontSize: 18,
+    fontWeight: '900',
+    color: THEME.colors.textPrimary,
+    minWidth: 24,
+    textAlign: 'center'
+  },
+  dashText: {
+    fontSize: 18,
+    fontWeight: '900',
+    color: THEME.colors.textMuted,
+    marginHorizontal: 10
   },
   unitToggleGroup: {
     flexDirection: 'row',

@@ -1,196 +1,233 @@
-import React from 'react';
-import { View, Text, StyleSheet, Modal, TouchableOpacity } from 'react-native';
+import React, { useEffect, useRef } from 'react';
+import { View, Text, StyleSheet, TouchableOpacity, Animated } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { THEME } from '../../constants/theme';
 import { useWorkout } from '../../context/WorkoutContext';
-import { triggerHapticSelection } from '../../utils/haptics';
+import { triggerHapticPR, triggerHapticSelection } from '../../utils/haptics';
 
 export const PRCelebrationModal: React.FC = () => {
   const { currentPRNotification, dismissPRNotification } = useWorkout();
+  const insets = useSafeAreaInsets();
+  const slideAnim = useRef(new Animated.Value(-120)).current;
+  const opacityAnim = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    if (currentPRNotification) {
+      triggerHapticPR();
+
+      // Slide down and fade in
+      Animated.parallel([
+        Animated.timing(slideAnim, {
+          toValue: insets.top + 8,
+          duration: 280,
+          useNativeDriver: true,
+        }),
+        Animated.timing(opacityAnim, {
+          toValue: 1,
+          duration: 250,
+          useNativeDriver: true,
+        }),
+      ]).start();
+
+      // Auto-dismiss after 4 seconds
+      const timer = setTimeout(() => {
+        handleDismiss();
+      }, 4200);
+
+      return () => clearTimeout(timer);
+    } else {
+      slideAnim.setValue(-120);
+      opacityAnim.setValue(0);
+    }
+  }, [currentPRNotification]);
 
   if (!currentPRNotification) return null;
 
-  const getPRTitle = () => {
+  const handleDismiss = () => {
+    Animated.parallel([
+      Animated.timing(slideAnim, {
+        toValue: -120,
+        duration: 220,
+        useNativeDriver: true,
+      }),
+      Animated.timing(opacityAnim, {
+        toValue: 0,
+        duration: 200,
+        useNativeDriver: true,
+      }),
+    ]).start(() => {
+      dismissPRNotification();
+    });
+  };
+
+  const getPRLabel = () => {
     switch (currentPRNotification.type) {
       case 'weight':
-        return 'HEAVIEST WEIGHT PR!';
+        return 'HEAVIEST WEIGHT PR';
       case '1rm':
-        return 'ESTIMATED 1RM PR!';
+        return 'ESTIMATED 1RM PR';
       case 'reps':
-        return 'REP RECORD PR!';
+        return 'REP RECORD PR';
+      default:
+        return 'NEW PERSONAL RECORD';
     }
   };
 
-  const getPRUnit = () => {
-    if (currentPRNotification.type === 'reps') return 'reps';
-    return currentPRNotification.unit;
-  };
-
-  const diff = currentPRNotification.previousValue > 0
-    ? Math.round((currentPRNotification.value - currentPRNotification.previousValue) * 10) / 10
-    : null;
-
-  const handleDismiss = () => {
-    triggerHapticSelection();
-    dismissPRNotification();
-  };
+  const weight = currentPRNotification.weight ?? currentPRNotification.value;
+  const reps = currentPRNotification.reps ?? 1;
+  const unit = currentPRNotification.unit;
+  const est1RM = currentPRNotification.estimated1RM;
 
   return (
-    <Modal visible={true} transparent={true} animationType="fade" onRequestClose={handleDismiss}>
-      <View style={styles.overlay}>
-        <View style={styles.card}>
-          {/* Glowing Trophy Icon */}
-          <View style={styles.trophyWrapper}>
-            <View style={styles.trophyGlow} />
-            <Ionicons name="trophy" size={54} color={THEME.colors.gold} />
-          </View>
-
-          {/* Banner Tag */}
-          <View style={styles.badge}>
-            <Text style={styles.badgeText}>{getPRTitle()}</Text>
-          </View>
-
-          {/* Exercise Name */}
-          <Text style={styles.exerciseName}>{currentPRNotification.exerciseName}</Text>
-
-          {/* New Record Big Numbers */}
-          <View style={styles.recordRow}>
-            <Text style={styles.recordValue}>{currentPRNotification.value}</Text>
-            <Text style={styles.recordUnit}>{getPRUnit()}</Text>
-          </View>
-
-          {/* Previous record comparison */}
-          {diff && diff > 0 ? (
-            <View style={styles.diffBox}>
-              <Ionicons name="trending-up" size={16} color={THEME.colors.primary} />
-              <Text style={styles.diffText}>
-                +{diff} {getPRUnit()} over previous ({currentPRNotification.previousValue} {getPRUnit()})
-              </Text>
-            </View>
-          ) : (
-            <View style={styles.diffBox}>
-              <Ionicons name="flame" size={16} color={THEME.colors.gold} />
-              <Text style={styles.diffText}>New personal milestone set!</Text>
-            </View>
-          )}
-
-          {/* Action Button */}
-          <TouchableOpacity activeOpacity={0.8} style={styles.actionBtn} onPress={handleDismiss}>
-            <Text style={styles.actionBtnText}>LET'S GO!</Text>
-          </TouchableOpacity>
+    <Animated.View
+      style={[
+        styles.floatingContainer,
+        {
+          transform: [{ translateY: slideAnim }],
+          opacity: opacityAnim,
+        },
+      ]}
+      pointerEvents="box-none"
+    >
+      <TouchableOpacity
+        activeOpacity={0.9}
+        style={styles.toastCard}
+        onPress={() => {
+          triggerHapticSelection();
+          handleDismiss();
+        }}
+      >
+        {/* Gold Trophy Icon Badge */}
+        <View style={styles.trophyBadge}>
+          <Ionicons name="trophy" size={20} color={THEME.colors.gold} />
         </View>
-      </View>
-    </Modal>
+
+        {/* PR Info */}
+        <View style={styles.textContainer}>
+          <View style={styles.headerRow}>
+            <Text style={styles.prBadgeText}>{getPRLabel()}</Text>
+          </View>
+
+          <Text style={styles.exerciseName} numberOfLines={1}>
+            {currentPRNotification.exerciseName}
+          </Text>
+
+          <View style={styles.detailsRow}>
+            <Text style={styles.scoreText}>
+              {weight} {unit} × {reps} reps
+            </Text>
+
+            {est1RM && est1RM > 0 ? (
+              <View style={styles.est1RMTag}>
+                <Ionicons name="analytics-outline" size={11} color="#06B6D4" />
+                <Text style={styles.est1RMText}>
+                  Est. 1RM: {est1RM} {unit}
+                </Text>
+              </View>
+            ) : null}
+          </View>
+        </View>
+
+        {/* Close Button */}
+        <TouchableOpacity
+          style={styles.closeBtn}
+          onPress={() => {
+            triggerHapticSelection();
+            handleDismiss();
+          }}
+        >
+          <Ionicons name="close" size={18} color="#737373" />
+        </TouchableOpacity>
+      </TouchableOpacity>
+    </Animated.View>
   );
 };
 
 const styles = StyleSheet.create({
-  overlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.85)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 24
+  floatingContainer: {
+    position: 'absolute',
+    top: 0,
+    left: 14,
+    right: 14,
+    zIndex: 99999,
+    elevation: 99999,
   },
-  card: {
-    width: '100%',
-    maxWidth: 340,
-    backgroundColor: THEME.colors.surfaceElevated,
-    borderRadius: THEME.borderRadius.xl,
-    padding: 24,
+  toastCard: {
+    backgroundColor: '#121212',
+    borderRadius: 14,
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+    flexDirection: 'row',
     alignItems: 'center',
     borderWidth: 1.5,
     borderColor: THEME.colors.gold,
     shadowColor: THEME.colors.gold,
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.35,
-    shadowRadius: 16,
-    elevation: 12
+    shadowRadius: 10,
+    elevation: 12,
   },
-  trophyWrapper: {
-    width: 90,
-    height: 90,
-    borderRadius: 45,
-    backgroundColor: THEME.colors.goldGlow,
+  trophyBadge: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: 'rgba(245, 158, 11, 0.15)',
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 16
+    marginRight: 10,
+    borderWidth: 1,
+    borderColor: 'rgba(245, 158, 11, 0.4)',
   },
-  trophyGlow: {
-    position: 'absolute',
-    width: 110,
-    height: 110,
-    borderRadius: 55,
-    backgroundColor: 'rgba(245, 158, 11, 0.15)'
+  textContainer: {
+    flex: 1,
   },
-  badge: {
-    backgroundColor: THEME.colors.gold,
-    paddingHorizontal: 12,
-    paddingVertical: 4,
-    borderRadius: THEME.borderRadius.full,
-    marginBottom: 10
+  headerRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 2,
   },
-  badgeText: {
-    color: '#0A0C10',
-    fontSize: 12,
+  prBadgeText: {
+    fontSize: 10,
     fontWeight: '800',
-    letterSpacing: 1
+    color: THEME.colors.gold,
+    letterSpacing: 0.8,
   },
   exerciseName: {
-    fontSize: 18,
+    fontSize: 14,
     fontWeight: '700',
-    color: THEME.colors.textPrimary,
-    textAlign: 'center',
-    marginBottom: 12
+    color: '#FFFFFF',
+    marginBottom: 4,
   },
-  recordRow: {
-    flexDirection: 'row',
-    alignItems: 'baseline',
-    marginBottom: 14
-  },
-  recordValue: {
-    fontSize: 48,
-    fontWeight: '900',
-    color: THEME.colors.gold,
-    letterSpacing: -1
-  },
-  recordUnit: {
-    fontSize: 20,
-    fontWeight: '700',
-    color: THEME.colors.textSecondary,
-    marginLeft: 8
-  },
-  diffBox: {
+  detailsRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: THEME.colors.surfaceHighlight,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: THEME.borderRadius.md,
-    marginBottom: 20
+    flexWrap: 'wrap',
+    gap: 8,
   },
-  diffText: {
-    color: THEME.colors.textPrimary,
+  scoreText: {
     fontSize: 13,
-    fontWeight: '600',
-    marginLeft: 6
-  },
-  actionBtn: {
-    width: '100%',
-    backgroundColor: THEME.colors.gold,
-    paddingVertical: 14,
-    borderRadius: THEME.borderRadius.lg,
-    alignItems: 'center',
-    shadowColor: THEME.colors.gold,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.25,
-    shadowRadius: 6,
-    elevation: 4
-  },
-  actionBtnText: {
-    color: '#0A0C10',
-    fontSize: 16,
     fontWeight: '800',
-    letterSpacing: 0.8
-  }
+    color: '#FFFFFF',
+  },
+  est1RMTag: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 3,
+    backgroundColor: 'rgba(6, 182, 212, 0.12)',
+    paddingHorizontal: 6,
+    paddingVertical: 1.5,
+    borderRadius: 5,
+    borderWidth: 1,
+    borderColor: 'rgba(6, 182, 212, 0.3)',
+  },
+  est1RMText: {
+    fontSize: 10,
+    fontWeight: '700',
+    color: '#06B6D4',
+  },
+  closeBtn: {
+    padding: 6,
+    marginLeft: 6,
+  },
 });
