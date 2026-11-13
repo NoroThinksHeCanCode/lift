@@ -58,6 +58,10 @@ export const NamePromptModal: React.FC<NamePromptModalProps> = ({
             <TouchableOpacity style={styles.submitBtn} onPress={handleSubmit}>
               <Text style={styles.submitBtnText}>LET'S L!FT</Text>
             </TouchableOpacity>
+
+            <TouchableOpacity style={styles.skipBtn} onPress={() => onSave('Lifter')}>
+              <Text style={styles.skipBtnText}>Skip for now</Text>
+            </TouchableOpacity>
           </View>
         </View>
       </TouchableWithoutFeedback>
@@ -132,5 +136,15 @@ const styles = StyleSheet.create({
     fontSize: 15,
     fontWeight: '800',
     letterSpacing: 0.8
+  },
+  skipBtn: {
+    marginTop: 12,
+    paddingVertical: 6,
+    paddingHorizontal: 12
+  },
+  skipBtnText: {
+    color: '#737373',
+    fontSize: 12,
+    fontWeight: '600'
   }
 });

@@ -92,7 +92,9 @@ export const WorkoutCalendarView: React.FC<WorkoutCalendarProps> = ({
             return <View key={idx} style={styles.emptyDayCell} />;
           }
 
-          const hasWorkout = !!monthWorkouts[item.dateKey] && monthWorkouts[item.dateKey].length > 0;
+          const dayWorkouts = monthWorkouts[item.dateKey] || [];
+          const hasWorkout = dayWorkouts.length > 0;
+          const hasPR = dayWorkouts.some(w => w.sets?.some(s => s.is_pr));
           const isSelected = selectedDateKey === item.dateKey;
           const isToday = new Date().toISOString().split('T')[0] === item.dateKey;
 
@@ -102,8 +104,9 @@ export const WorkoutCalendarView: React.FC<WorkoutCalendarProps> = ({
               activeOpacity={0.7}
               style={[
                 styles.dayCell,
-                isSelected && styles.dayCellSelected,
-                isToday && !isSelected && styles.dayCellToday
+                hasPR && !isSelected && styles.dayCellPR,
+                isSelected && (hasPR ? styles.dayCellSelectedPR : styles.dayCellSelected),
+                isToday && !isSelected && !hasPR && styles.dayCellToday
               ]}
               onPress={() => {
                 triggerHapticSelection();
@@ -113,19 +116,38 @@ export const WorkoutCalendarView: React.FC<WorkoutCalendarProps> = ({
               <Text
                 style={[
                   styles.dayNumText,
+                  hasPR && !isSelected && styles.dayNumTextPR,
                   isSelected && styles.dayNumTextSelected,
-                  isToday && !isSelected && styles.dayNumTextToday
+                  isToday && !isSelected && !hasPR && styles.dayNumTextToday
                 ]}
               >
                 {item.dayNumber}
               </Text>
 
               {hasWorkout && (
-                <View style={[styles.workoutDot, isSelected && styles.workoutDotSelected]} />
+                <View
+                  style={[
+                    styles.workoutDot,
+                    hasPR && styles.workoutDotPR,
+                    isSelected && styles.workoutDotSelected
+                  ]}
+                />
               )}
             </TouchableOpacity>
           );
         })}
+      </View>
+
+      {/* Calendar Legend */}
+      <View style={styles.legendRow}>
+        <View style={styles.legendItem}>
+          <View style={[styles.legendDot, { backgroundColor: THEME.colors.primary }]} />
+          <Text style={styles.legendText}>Workout</Text>
+        </View>
+        <View style={styles.legendItem}>
+          <View style={[styles.legendDot, { backgroundColor: THEME.colors.gold }]} />
+          <Text style={[styles.legendText, { color: THEME.colors.gold }]}>PR Set 🏆</Text>
+        </View>
       </View>
 
       {/* Selected Day Workout Details */}
@@ -146,23 +168,34 @@ export const WorkoutCalendarView: React.FC<WorkoutCalendarProps> = ({
         {selectedWorkouts.length === 0 ? (
           <Text style={styles.noWorkoutText}>Rest day. No workouts logged on this date.</Text>
         ) : (
-          selectedWorkouts.map((w) => (
-            <TouchableOpacity
-              key={w.id}
-              activeOpacity={0.8}
-              onPress={() => onSelectWorkout && onSelectWorkout(w)}
-              style={styles.workoutItem}
-            >
-              <View style={styles.workoutIndicator} />
-              <View style={{ flex: 1 }}>
-                <Text style={styles.workoutName}>{w.name}</Text>
-                <Text style={styles.workoutMeta}>
-                  {Math.floor(w.duration_seconds / 60)}m • {w.totalSets} sets • {w.totalVolume} {unit}
-                </Text>
-              </View>
-              <Ionicons name="chevron-forward" size={16} color={THEME.colors.textMuted} />
-            </TouchableOpacity>
-          ))
+          selectedWorkouts.map((w) => {
+            const workoutHasPR = w.sets?.some(s => s.is_pr);
+            return (
+              <TouchableOpacity
+                key={w.id}
+                activeOpacity={0.8}
+                onPress={() => onSelectWorkout && onSelectWorkout(w)}
+                style={[styles.workoutItem, workoutHasPR && styles.workoutItemPR]}
+              >
+                <View style={[styles.workoutIndicator, workoutHasPR && styles.workoutIndicatorPR]} />
+                <View style={{ flex: 1 }}>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                    <Text style={styles.workoutName}>{w.name}</Text>
+                    {workoutHasPR && (
+                      <View style={styles.prBadgeSmall}>
+                        <Ionicons name="trophy" size={10} color={THEME.colors.gold} />
+                        <Text style={styles.prBadgeSmallText}>PR</Text>
+                      </View>
+                    )}
+                  </View>
+                  <Text style={styles.workoutMeta}>
+                    {Math.floor(w.duration_seconds / 60)}m • {w.totalSets} sets • {w.totalVolume} {unit}
+                  </Text>
+                </View>
+                <Ionicons name="chevron-forward" size={16} color={THEME.colors.textMuted} />
+              </TouchableOpacity>
+            );
+          })
         )}
       </View>
     </View>
@@ -238,8 +271,16 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: THEME.colors.cyan
   },
+  dayCellPR: {
+    backgroundColor: 'rgba(245, 158, 11, 0.15)',
+    borderWidth: 1.5,
+    borderColor: '#F59E0B'
+  },
   dayCellSelected: {
     backgroundColor: THEME.colors.primary
+  },
+  dayCellSelectedPR: {
+    backgroundColor: '#F59E0B'
   },
   dayNumText: {
     fontSize: 14,
@@ -249,6 +290,10 @@ const styles = StyleSheet.create({
   dayNumTextToday: {
     color: THEME.colors.cyan,
     fontWeight: '800'
+  },
+  dayNumTextPR: {
+    color: '#F59E0B',
+    fontWeight: '900'
   },
   dayNumTextSelected: {
     color: '#08090B',
@@ -262,8 +307,38 @@ const styles = StyleSheet.create({
     borderRadius: 2,
     backgroundColor: THEME.colors.primary
   },
+  workoutDotPR: {
+    backgroundColor: '#F59E0B',
+    width: 5,
+    height: 5,
+    borderRadius: 2.5
+  },
   workoutDotSelected: {
     backgroundColor: '#08090B'
+  },
+  legendRow: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    gap: 16,
+    marginTop: 14,
+    paddingTop: 10,
+    borderTopWidth: 1,
+    borderColor: '#1C1C1C'
+  },
+  legendItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6
+  },
+  legendDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3
+  },
+  legendText: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: THEME.colors.textMuted
   },
   detailsCard: {
     marginTop: 16,
@@ -317,5 +392,28 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: THEME.colors.textSecondary,
     marginTop: 2
+  },
+  workoutItemPR: {
+    borderColor: 'rgba(245, 158, 11, 0.4)',
+    backgroundColor: '#14110A'
+  },
+  workoutIndicatorPR: {
+    backgroundColor: THEME.colors.gold
+  },
+  prBadgeSmall: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 3,
+    backgroundColor: 'rgba(245, 158, 11, 0.2)',
+    paddingHorizontal: 6,
+    paddingVertical: 1,
+    borderRadius: 4,
+    borderWidth: 1,
+    borderColor: 'rgba(245, 158, 11, 0.5)'
+  },
+  prBadgeSmallText: {
+    fontSize: 10,
+    fontWeight: '800',
+    color: THEME.colors.gold
   }
 });

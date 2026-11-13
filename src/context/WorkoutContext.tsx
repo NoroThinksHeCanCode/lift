@@ -7,7 +7,10 @@ import {
   PRNotification,
   SetType,
   Workout,
-  WorkoutSet
+  WorkoutSet,
+  WorkoutSummary,
+  WorkoutSummaryPR,
+  WorkoutSummaryExercise
 } from '../types';
 import {
   checkPersonalRecord,
@@ -69,6 +72,9 @@ interface WorkoutContextValue {
 
   currentOverloadPrompt: OverloadPrompt | null;
   dismissOverloadPrompt: () => void;
+
+  completedWorkoutSummary: WorkoutSummary | null;
+  dismissWorkoutSummary: () => void;
 }
 
 const WorkoutContext = createContext<WorkoutContextValue | undefined>(undefined);
@@ -97,6 +103,11 @@ export const WorkoutProvider: React.FC<{ children: React.ReactNode }> = ({ child
 
   const [currentPRNotification, setCurrentPRNotification] = useState<PRNotification | null>(null);
   const [currentOverloadPrompt, setCurrentOverloadPrompt] = useState<OverloadPrompt | null>(null);
+  const [completedWorkoutSummary, setCompletedWorkoutSummary] = useState<WorkoutSummary | null>(null);
+
+  const dismissWorkoutSummary = () => {
+    setCompletedWorkoutSummary(null);
+  };
 
   const syncExternalBridges = (timeSeconds: number, exercisesList: ActiveExerciseSession[], currentRest: number) => {
     if (!activeWorkout) return;
@@ -614,6 +625,16 @@ export const WorkoutProvider: React.FC<{ children: React.ReactNode }> = ({ child
     }
   };
 
+  const formatTimer = (totalSeconds: number) => {
+    const hrs = Math.floor(totalSeconds / 3600);
+    const mins = Math.floor((totalSeconds % 3600) / 60);
+    const secs = totalSeconds % 60;
+    if (hrs > 0) {
+      return `${String(hrs).padStart(2, '0')}:${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
+    }
+    return `${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
+  };
+
   const finishWorkout = async (notes?: string) => {
     if (!activeWorkout) return;
 
@@ -631,6 +652,63 @@ export const WorkoutProvider: React.FC<{ children: React.ReactNode }> = ({ child
 
     await saveCompletedWorkout(finishedWorkout, allSets);
 
+    // Build rich Workout Summary Data
+    const summaryPRs: WorkoutSummaryPR[] = [];
+    const summaryExercises: WorkoutSummaryExercise[] = [];
+
+    activeExercises.forEach(exSession => {
+      const completedSets = exSession.sets.filter(s => s.is_completed);
+      if (completedSets.length === 0) return;
+
+      let bestWeight = 0;
+      let bestReps = 0;
+      let hasPR = false;
+
+      completedSets.forEach(s => {
+        if (s.weight > bestWeight || (s.weight === bestWeight && s.reps > bestReps)) {
+          bestWeight = s.weight;
+          bestReps = s.reps;
+        }
+        if (s.is_pr) {
+          hasPR = true;
+          summaryPRs.push({
+            exerciseName: exSession.exercise.name,
+            type: (s.pr_type as any) || 'weight',
+            weight: s.weight,
+            reps: s.reps,
+            estimated1RM: calculateEstimated1RM(s.weight, s.reps),
+            unit: settings.unit
+          });
+        }
+      });
+
+      summaryExercises.push({
+        exerciseName: exSession.exercise.name,
+        totalSets: completedSets.length,
+        bestSet: {
+          weight: bestWeight,
+          reps: bestReps
+        },
+        hasPR
+      });
+    });
+
+    const completedSetsList = allSets.filter(s => s.is_completed);
+    const completedSetsCount = completedSetsList.length;
+    const totalVolume = completedSetsList.reduce((sum, s) => sum + (s.weight * s.reps), 0);
+
+    const summary: WorkoutSummary = {
+      workoutName: finishedWorkout.name,
+      durationSeconds: elapsedSeconds,
+      formattedDuration: formatTimer(elapsedSeconds),
+      totalVolume,
+      totalSets: allSets.length,
+      completedSetsCount,
+      prs: summaryPRs,
+      exercises: summaryExercises,
+      completedAt: finishedWorkout.end_time || Date.now()
+    };
+
     stopRestTimer();
     clearOngoingWorkoutNotification();
     setActiveWorkout(null);
@@ -638,6 +716,9 @@ export const WorkoutProvider: React.FC<{ children: React.ReactNode }> = ({ child
     setIsWorkoutModalVisible(false);
     workoutStartRef.current = null;
     setElapsedSeconds(0);
+
+    // Pop up rewarding workout summary card
+    setCompletedWorkoutSummary(summary);
   };
 
   const cancelWorkout = () => {
@@ -656,16 +737,6 @@ export const WorkoutProvider: React.FC<{ children: React.ReactNode }> = ({ child
 
   const dismissOverloadPrompt = () => {
     setCurrentOverloadPrompt(null);
-  };
-
-  const formatTimer = (totalSeconds: number) => {
-    const hrs = Math.floor(totalSeconds / 3600);
-    const mins = Math.floor((totalSeconds % 3600) / 60);
-    const secs = totalSeconds % 60;
-    if (hrs > 0) {
-      return `${String(hrs).padStart(2, '0')}:${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
-    }
-    return `${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
   };
 
   return (
@@ -708,7 +779,9 @@ export const WorkoutProvider: React.FC<{ children: React.ReactNode }> = ({ child
         currentPRNotification,
         dismissPRNotification,
         currentOverloadPrompt,
-        dismissOverloadPrompt
+        dismissOverloadPrompt,
+        completedWorkoutSummary,
+        dismissWorkoutSummary
       }}
     >
       {children}

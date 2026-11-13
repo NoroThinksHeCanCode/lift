@@ -164,3 +164,34 @@ export interface ChartDataPoint {
   label?: string;
   sublabel?: string;
 }
+
+export interface WorkoutSummaryPR {
+  exerciseName: string;
+  type: 'weight' | 'reps' | '1rm';
+  weight: number;
+  reps: number;
+  estimated1RM: number;
+  unit: string;
+}
+
+export interface WorkoutSummaryExercise {
+  exerciseName: string;
+  totalSets: number;
+  bestSet: {
+    weight: number;
+    reps: number;
+  };
+  hasPR: boolean;
+}
+
+export interface WorkoutSummary {
+  workoutName: string;
+  durationSeconds: number;
+  formattedDuration: string;
+  totalVolume: number;
+  totalSets: number;
+  completedSetsCount: number;
+  prs: WorkoutSummaryPR[];
+  exercises: WorkoutSummaryExercise[];
+  completedAt: number;
+}

@@ -20,6 +20,7 @@ const DEFAULT_SETTINGS: UserSettings = {
 
 interface SettingsContextValue {
   settings: UserSettings;
+  isLoaded: boolean;
   updateSettings: (newSettings: Partial<UserSettings>) => Promise<void>;
   toggleUnit: () => Promise<void>;
   currentBarWeight: number;
@@ -29,6 +30,7 @@ const SettingsContext = createContext<SettingsContextValue | undefined>(undefine
 
 export const SettingsProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [settings, setSettings] = useState<UserSettings>(DEFAULT_SETTINGS);
+  const [isLoaded, setIsLoaded] = useState<boolean>(false);
 
   useEffect(() => {
     (async () => {
@@ -39,6 +41,8 @@ export const SettingsProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         }
       } catch (e) {
         console.warn('Failed to load settings:', e);
+      } finally {
+        setIsLoaded(true);
       }
     })();
   }, []);
@@ -61,7 +65,7 @@ export const SettingsProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   const currentBarWeight = settings.unit === 'lbs' ? settings.barWeightLbs : settings.barWeightKg;
 
   return (
-    <SettingsContext.Provider value={{ settings, updateSettings, toggleUnit, currentBarWeight }}>
+    <SettingsContext.Provider value={{ settings, isLoaded, updateSettings, toggleUnit, currentBarWeight }}>
       {children}
     </SettingsContext.Provider>
   );

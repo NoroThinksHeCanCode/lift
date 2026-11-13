@@ -14,6 +14,7 @@ import { ToolsScreen } from './src/screens/ToolsScreen';
 import { ActiveWorkoutBar } from './src/components/workout/ActiveWorkoutBar';
 import { ActiveWorkoutModal } from './src/components/workout/ActiveWorkoutModal';
 import { PRCelebrationModal } from './src/components/workout/PRCelebrationModal';
+import { WorkoutSummaryModal } from './src/components/workout/WorkoutSummaryModal';
 import { triggerHapticSelection } from './src/utils/haptics';
 
 type Tab = 'workouts' | 'history' | 'exercises' | 'tools';
@@ -86,6 +87,9 @@ function MainApp() {
 
       {/* Satisfying PR Notification Modal */}
       <PRCelebrationModal />
+
+      {/* Post-Workout Summary Card */}
+      <WorkoutSummaryModal />
     </View>
   );
 }

@@ -22,7 +22,7 @@ import { triggerHapticSelection, triggerHapticSuccess } from '../utils/haptics';
 
 export const WorkoutsScreen: React.FC = () => {
   const { isWorkoutActive, startWorkout, setIsWorkoutModalVisible } = useWorkout();
-  const { settings, updateSettings } = useSettings();
+  const { settings, isLoaded, updateSettings } = useSettings();
   const [templates, setTemplates] = useState<Template[]>([]);
   const [showCreateTemplateModal, setShowCreateTemplateModal] = useState(false);
 
@@ -333,9 +333,9 @@ export const WorkoutsScreen: React.FC = () => {
         </View>
       </Modal>
 
-      {/* Name Prompt Modal on First Install / Update */}
+      {/* Name Prompt Modal on First Install / Update (only after settings are loaded) */}
       <NamePromptModal
-        visible={!settings.userName}
+        visible={isLoaded && !settings.userName}
         onSave={(name) => updateSettings({ userName: name })}
       />
     </View>
