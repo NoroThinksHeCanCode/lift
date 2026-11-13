@@ -1,7 +1,7 @@
 # 🏋️ Lift — Open-Source Personal Gym Tracker (Android)
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-emerald.svg)](https://opensource.org/licenses/MIT)
-[![Download APK](https://img.shields.io/badge/Download%20APK-v1.0.0-success.svg?logo=android)](https://github.com/NoroThinksHeCanCode/lift/releases/latest/download/Lift-v1.0.0.apk)
+[![Download APK](https://img.shields.io/badge/Download%20APK-v1.0.1-success.svg?logo=android)](https://github.com/NoroThinksHeCanCode/lift/releases/latest/download/Lift-v1.0.1.apk)
 [![Platform](https://img.shields.io/badge/Platform-Android-blue.svg)](https://www.android.com/)
 [![React Native](https://img.shields.io/badge/React%20Native-0.88-61DAFB.svg)](https://reactnative.dev/)
 [![Expo](https://img.shields.io/badge/Expo-SDK%2058-white.svg)](https://expo.dev/)
