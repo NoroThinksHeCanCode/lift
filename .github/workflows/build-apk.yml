@@ -40,7 +40,7 @@ jobs:
       - name: 📤 Upload APK Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: Lift-v1.0.1-release
+          name: Lift-v1.0.2-release
           path: android/app/build/outputs/apk/release/app-release.apk
           if-no-files-found: error
 
@@ -48,6 +48,7 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          cp android/app/build/outputs/apk/release/app-release.apk Lift-v1.0.1.apk
-          gh release upload v1.0.0 Lift-v1.0.1.apk#Lift-v1.0.0.apk --clobber || true
-          gh release create v1.0.1 Lift-v1.0.1.apk --title "Lift v1.0.1 (Android APK)" --notes "Lift v1.0.1 standalone APK with native home screen widgets, ongoing notification bar, Health Connect permissions, and rep range picker modal." || true
+          cp android/app/build/outputs/apk/release/app-release.apk Lift-v1.0.2.apk
+          gh release upload v1.0.0 Lift-v1.0.2.apk#Lift-v1.0.0.apk --clobber || true
+          gh release upload v1.0.1 Lift-v1.0.2.apk#Lift-v1.0.1.apk --clobber || true
+          gh release create v1.0.2 Lift-v1.0.2.apk --title "Lift v1.0.2 (Android APK)" --notes "Lift v1.0.2 standalone APK with fixed Android widgets, direct Google Health Connect API integration, and responsive recovery UI." || true

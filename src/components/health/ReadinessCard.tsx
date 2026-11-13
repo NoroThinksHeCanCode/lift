@@ -5,41 +5,24 @@ import {
   StyleSheet,
   TouchableOpacity,
   ActivityIndicator,
-  Modal,
-  TextInput,
-  TouchableWithoutFeedback,
-  Keyboard,
-  Platform
+  Alert
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { HealthMetrics } from '../../types';
 import { THEME } from '../../constants/theme';
 import { getLatestHealthMetrics } from '../../db/database';
-import { syncHealthConnectData, getReadinessAdvice, openHealthConnectPermissions } from '../../services/healthConnect';
-import { syncHealthToWidget } from '../../services/widgetService';
+import { syncHealthConnectData, getReadinessAdvice, openHealthConnectSettings } from '../../services/healthConnect';
 import { triggerHapticSelection, triggerHapticSuccess } from '../../utils/haptics';
 
 export const ReadinessCard: React.FC = () => {
   const [metrics, setMetrics] = useState<HealthMetrics | null>(null);
   const [syncing, setSyncing] = useState(false);
-  const [editModalVisible, setEditModalVisible] = useState(false);
-
-  // Edit form state
-  const [sleepHoursInput, setSleepHoursInput] = useState('7.8');
-  const [sleepScoreInput, setSleepScoreInput] = useState('88');
-  const [restingHRInput, setRestingHRInput] = useState('52');
-  const [stepsInput, setStepsInput] = useState('8940');
+  const [statusMessage, setStatusMessage] = useState<string | null>(null);
 
   const loadData = async () => {
     const existing = await getLatestHealthMetrics();
     if (existing) {
       setMetrics(existing);
-      setSleepHoursInput(String(existing.sleepHours));
-      setSleepScoreInput(String(existing.sleepScore));
-      setRestingHRInput(String(existing.restingHeartRate));
-      setStepsInput(String(existing.steps));
-      const advice = getReadinessAdvice(existing.readinessScore).advice;
-      await syncHealthToWidget(existing, advice);
     } else {
       handleSync();
     }
@@ -52,47 +35,15 @@ export const ReadinessCard: React.FC = () => {
   const handleSync = async () => {
     triggerHapticSelection();
     setSyncing(true);
+    setStatusMessage(null);
     try {
-      const updated = await syncHealthConnectData();
-      setMetrics(updated);
-      setSleepHoursInput(String(updated.sleepHours));
-      setSleepScoreInput(String(updated.sleepScore));
-      setRestingHRInput(String(updated.restingHeartRate));
-      setStepsInput(String(updated.steps));
+      const result = await syncHealthConnectData();
+      setMetrics(result.metrics);
+      setStatusMessage(result.message);
       triggerHapticSuccess();
-    } catch (e) {
+    } catch (e: any) {
       console.warn('Sync failed:', e);
-    } finally {
-      setSyncing(false);
-    }
-  };
-
-  const handleOpenPermissions = async () => {
-    triggerHapticSelection();
-    await openHealthConnectPermissions();
-  };
-
-  const handleSaveManualMetrics = async () => {
-    triggerHapticSuccess();
-    setSyncing(true);
-    try {
-      const hours = parseFloat(sleepHoursInput) || 7.5;
-      const score = parseInt(sleepScoreInput, 10) || 85;
-      const rhr = parseInt(restingHRInput, 10) || 55;
-      const steps = parseInt(stepsInput, 10) || 8000;
-
-      const updated = await syncHealthConnectData({
-        sleepHours: hours,
-        sleepScore: score,
-        restingHeartRate: rhr,
-        steps: steps,
-        hrvMs: rhr <= 55 ? 68 : 50
-      });
-
-      setMetrics(updated);
-      setEditModalVisible(false);
-    } catch (e) {
-      console.warn('Manual save failed:', e);
+      setStatusMessage('Sync failed. Please check Health Connect.');
     } finally {
       setSyncing(false);
     }
@@ -106,178 +57,101 @@ export const ReadinessCard: React.FC = () => {
 
   return (
     <View style={styles.card}>
-      {/* Top Header */}
+      {/* Top Header Row */}
       <View style={styles.topRow}>
         <View style={styles.sourceTag}>
-          <Ionicons name="fitness" size={14} color={THEME.colors.primary} />
-          <Text style={styles.sourceText}>FITBIT • GOOGLE HEALTH</Text>
+          <Ionicons name="fitness" size={13} color={THEME.colors.primary} />
+          <Text style={styles.sourceText} numberOfLines={1}>FITBIT • GOOGLE HEALTH</Text>
         </View>
 
-        <View style={styles.headerButtons}>
-          <TouchableOpacity onPress={() => setEditModalVisible(true)} style={styles.iconBtn}>
-            <Ionicons name="create-outline" size={13} color={THEME.colors.textMuted} />
-            <Text style={styles.iconBtnText}>Edit</Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity onPress={handleOpenPermissions} style={styles.iconBtn}>
-            <Ionicons name="shield-checkmark-outline" size={13} color={THEME.colors.primary} />
-            <Text style={[styles.iconBtnText, { color: THEME.colors.primary }]}>Permissions</Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity onPress={handleSync} disabled={syncing} style={styles.syncBtn}>
-            {syncing ? (
-              <ActivityIndicator size="small" color={THEME.colors.primary} />
-            ) : (
-              <>
-                <Ionicons name="sync" size={12} color={THEME.colors.textMuted} />
-                <Text style={styles.syncText}>Sync</Text>
-              </>
-            )}
-          </TouchableOpacity>
-        </View>
+        <TouchableOpacity
+          onPress={handleSync}
+          disabled={syncing}
+          style={styles.syncBtn}
+          activeOpacity={0.7}
+        >
+          {syncing ? (
+            <ActivityIndicator size="small" color={THEME.colors.primary} />
+          ) : (
+            <>
+              <Ionicons name="sync" size={12} color={THEME.colors.primary} />
+              <Text style={styles.syncText}>Sync</Text>
+            </>
+          )}
+        </TouchableOpacity>
       </View>
 
-      {/* Main Stats Row */}
-      <View style={styles.statsRow}>
-        {/* Readiness Score */}
-        <View style={styles.readinessBox}>
+      {/* Main Readiness Hero Section */}
+      <View style={styles.heroSection}>
+        <View style={styles.scoreRow}>
           <Text style={styles.scoreNumber}>{metrics.readinessScore}</Text>
+          <Text style={styles.scoreUnit}>%</Text>
           <View style={[styles.statusBadge, { backgroundColor: `${advice.color}20` }]}>
             <Text style={[styles.statusBadgeText, { color: advice.color }]}>
               {advice.label.toUpperCase()}
             </Text>
           </View>
-          <Text style={styles.readinessSub}>READINESS SCORE</Text>
+        </View>
+        <Text style={styles.readinessSub}>TRAINING READINESS</Text>
+      </View>
+
+      {/* 2x2 Clean Responsive Metrics Grid */}
+      <View style={styles.tilesContainer}>
+        {/* Tile 1: Sleep Duration */}
+        <View style={styles.metricTile}>
+          <View style={styles.tileHeader}>
+            <Ionicons name="moon-outline" size={13} color="#818CF8" />
+            <Text style={styles.tileLabel}>SLEEP TIME</Text>
+          </View>
+          <Text style={styles.tileValue} numberOfLines={1}>{sleepHrs}h {sleepMins}m</Text>
         </View>
 
-        {/* Supporting Metrics */}
-        <View style={styles.metricsGrid}>
-          {/* Sleep */}
-          <View style={styles.metricItem}>
-            <Ionicons name="moon-outline" size={13} color="#818CF8" />
-            <View style={{ marginLeft: 6 }}>
-              <Text style={styles.metricVal}>{sleepHrs}h {sleepMins}m</Text>
-              <Text style={styles.metricLabel}>Sleep Time</Text>
-            </View>
-          </View>
-
-          {/* Resting HR */}
-          <View style={styles.metricItem}>
+        {/* Tile 2: Resting HR */}
+        <View style={styles.metricTile}>
+          <View style={styles.tileHeader}>
             <Ionicons name="heart-outline" size={13} color="#F43F5E" />
-            <View style={{ marginLeft: 6 }}>
-              <Text style={styles.metricVal}>{metrics.restingHeartRate} bpm</Text>
-              <Text style={styles.metricLabel}>Resting HR</Text>
-            </View>
+            <Text style={styles.tileLabel}>RESTING HR</Text>
           </View>
+          <Text style={styles.tileValue} numberOfLines={1}>{metrics.restingHeartRate} bpm</Text>
+        </View>
 
-          {/* Steps */}
-          <View style={styles.metricItem}>
+        {/* Tile 3: Daily Steps */}
+        <View style={styles.metricTile}>
+          <View style={styles.tileHeader}>
             <Ionicons name="footsteps-outline" size={13} color="#10B981" />
-            <View style={{ marginLeft: 6 }}>
-              <Text style={styles.metricVal}>{metrics.steps.toLocaleString()}</Text>
-              <Text style={styles.metricLabel}>Daily Steps</Text>
-            </View>
+            <Text style={styles.tileLabel}>DAILY STEPS</Text>
           </View>
+          <Text style={styles.tileValue} numberOfLines={1}>{metrics.steps.toLocaleString()}</Text>
+        </View>
 
-          {/* Sleep Quality */}
-          <View style={styles.metricItem}>
+        {/* Tile 4: Sleep Score */}
+        <View style={styles.metricTile}>
+          <View style={styles.tileHeader}>
             <Ionicons name="pulse-outline" size={13} color="#F59E0B" />
-            <View style={{ marginLeft: 6 }}>
-              <Text style={styles.metricVal}>{metrics.sleepScore || 85}%</Text>
-              <Text style={styles.metricLabel}>Sleep Quality</Text>
-            </View>
+            <Text style={styles.tileLabel}>SLEEP SCORE</Text>
           </View>
+          <Text style={styles.tileValue} numberOfLines={1}>{metrics.sleepScore || 85}%</Text>
         </View>
       </View>
 
-      {/* Training Recommendation */}
+      {/* Recommendation Banner */}
       <View style={styles.adviceBox}>
-        <Ionicons name="sparkles" size={14} color={advice.color} />
+        <Ionicons name="sparkles" size={14} color={advice.color} style={{ marginTop: 1 }} />
         <Text style={styles.adviceText}>{advice.advice}</Text>
       </View>
 
-      {/* Manual / Fitbit Metric Edit Modal */}
-      <Modal visible={editModalVisible} transparent animationType="fade" onRequestClose={() => setEditModalVisible(false)}>
-        <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
-          <View style={styles.modalOverlay}>
-            <View style={styles.modalContainer}>
-              <View style={styles.modalHeader}>
-                <Text style={styles.modalTitle}>Fitbit &amp; Health Metrics</Text>
-                <TouchableOpacity onPress={() => setEditModalVisible(false)}>
-                  <Ionicons name="close" size={20} color={THEME.colors.textMuted} />
-                </TouchableOpacity>
-              </View>
-
-              <Text style={styles.modalDesc}>
-                Adjust or sync your metrics directly. Changes immediately update your Readiness Score and Android Home Screen Widget.
-              </Text>
-
-              {/* Sleep Hours */}
-              <View style={styles.inputRow}>
-                <Text style={styles.inputLabel}>SLEEP DURATION (HOURS)</Text>
-                <TextInput
-                  style={styles.textInput}
-                  keyboardType="numeric"
-                  value={sleepHoursInput}
-                  onChangeText={setSleepHoursInput}
-                  placeholder="e.g. 7.5"
-                  placeholderTextColor={THEME.colors.textMuted}
-                />
-              </View>
-
-              {/* Sleep Score */}
-              <View style={styles.inputRow}>
-                <Text style={styles.inputLabel}>SLEEP QUALITY SCORE (0–100)</Text>
-                <TextInput
-                  style={styles.textInput}
-                  keyboardType="number-pad"
-                  value={sleepScoreInput}
-                  onChangeText={setSleepScoreInput}
-                  placeholder="e.g. 88"
-                  placeholderTextColor={THEME.colors.textMuted}
-                />
-              </View>
-
-              {/* Resting HR */}
-              <View style={styles.inputRow}>
-                <Text style={styles.inputLabel}>RESTING HEART RATE (BPM)</Text>
-                <TextInput
-                  style={styles.textInput}
-                  keyboardType="number-pad"
-                  value={restingHRInput}
-                  onChangeText={setRestingHRInput}
-                  placeholder="e.g. 52"
-                  placeholderTextColor={THEME.colors.textMuted}
-                />
-              </View>
-
-              {/* Steps */}
-              <View style={styles.inputRow}>
-                <Text style={styles.inputLabel}>DAILY STEPS</Text>
-                <TextInput
-                  style={styles.textInput}
-                  keyboardType="number-pad"
-                  value={stepsInput}
-                  onChangeText={setStepsInput}
-                  placeholder="e.g. 8940"
-                  placeholderTextColor={THEME.colors.textMuted}
-                />
-              </View>
-
-              {/* Actions */}
-              <View style={styles.modalActions}>
-                <TouchableOpacity style={styles.cancelBtn} onPress={() => setEditModalVisible(false)}>
-                  <Text style={styles.cancelBtnText}>Cancel</Text>
-                </TouchableOpacity>
-
-                <TouchableOpacity style={styles.saveBtn} onPress={handleSaveManualMetrics}>
-                  <Text style={styles.saveBtnText}>Update Readiness</Text>
-                </TouchableOpacity>
-              </View>
-            </View>
-          </View>
-        </TouchableWithoutFeedback>
-      </Modal>
+      {/* Sync Status Feedback */}
+      {statusMessage && (
+        <View style={styles.statusRow}>
+          <Text style={styles.statusMessageText} numberOfLines={1}>
+            {statusMessage}
+          </Text>
+          <TouchableOpacity onPress={openHealthConnectSettings} style={styles.settingsLink}>
+            <Text style={styles.settingsLinkText}>Settings</Text>
+            <Ionicons name="chevron-forward" size={10} color={THEME.colors.primary} />
+          </TouchableOpacity>
+        </View>
+      )}
     </View>
   );
 };
@@ -289,7 +163,8 @@ const styles = StyleSheet.create({
     padding: 16,
     borderWidth: 1,
     borderColor: THEME.colors.border,
-    gap: 12
+    gap: 12,
+    width: '100%'
   },
   topRow: {
     flexDirection: 'row',
@@ -299,207 +174,140 @@ const styles = StyleSheet.create({
   sourceTag: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6
+    gap: 6,
+    flexShrink: 1
   },
   sourceText: {
     fontSize: 10,
     fontWeight: '800',
     color: THEME.colors.textMuted,
-    letterSpacing: 1
-  },
-  headerButtons: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6
-  },
-  iconBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 3,
-    paddingHorizontal: 7,
-    paddingVertical: 3,
-    backgroundColor: THEME.colors.surfaceElevated,
-    borderRadius: 6,
-    borderWidth: 1,
-    borderColor: THEME.colors.border
-  },
-  iconBtnText: {
-    fontSize: 11,
-    color: THEME.colors.textMuted,
-    fontWeight: '600'
+    letterSpacing: 0.8
   },
   syncBtn: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
-    paddingHorizontal: 8,
-    paddingVertical: 3,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
     backgroundColor: THEME.colors.surfaceElevated,
-    borderRadius: 6,
+    borderRadius: 8,
     borderWidth: 1,
     borderColor: THEME.colors.border
   },
   syncText: {
-    fontSize: 11,
-    color: THEME.colors.textMuted,
-    fontWeight: '600'
+    fontSize: 12,
+    color: THEME.colors.primary,
+    fontWeight: '700'
   },
-  statsRow: {
+  heroSection: {
+    backgroundColor: THEME.colors.surfaceElevated,
+    borderRadius: 12,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderWidth: 1,
+    borderColor: THEME.colors.borderSubtle
+  },
+  scoreRow: {
     flexDirection: 'row',
-    alignItems: 'center'
-  },
-  readinessBox: {
-    width: 110,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderRightWidth: 1,
-    borderRightColor: THEME.colors.border,
-    paddingRight: 12
+    alignItems: 'baseline',
+    gap: 6
   },
   scoreNumber: {
-    fontSize: 38,
+    fontSize: 36,
     fontWeight: '900',
     color: '#FFFFFF',
     fontVariant: ['tabular-nums']
   },
+  scoreUnit: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: THEME.colors.textMuted,
+    marginRight: 6
+  },
   statusBadge: {
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    borderRadius: 4,
-    marginTop: 2
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 6
   },
   statusBadgeText: {
-    fontSize: 9,
+    fontSize: 10,
     fontWeight: '800',
     letterSpacing: 0.5
   },
   readinessSub: {
-    fontSize: 8,
+    fontSize: 9,
     color: THEME.colors.textMuted,
     fontWeight: '700',
-    marginTop: 4,
-    letterSpacing: 0.5
+    letterSpacing: 0.5,
+    marginTop: 2
   },
-  metricsGrid: {
-    flex: 1,
-    paddingLeft: 14,
+  tilesContainer: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 10
+    gap: 8,
+    justifyContent: 'space-between'
   },
-  metricItem: {
-    width: '45%',
+  metricTile: {
+    width: '48.5%',
+    backgroundColor: THEME.colors.surfaceElevated,
+    borderRadius: 10,
+    padding: 10,
+    borderWidth: 1,
+    borderColor: THEME.colors.borderSubtle
+  },
+  tileHeader: {
     flexDirection: 'row',
-    alignItems: 'center'
+    alignItems: 'center',
+    gap: 5,
+    marginBottom: 4
   },
-  metricVal: {
-    fontSize: 13,
-    fontWeight: '700',
-    color: '#FFFFFF'
-  },
-  metricLabel: {
+  tileLabel: {
     fontSize: 9,
-    color: THEME.colors.textMuted
+    fontWeight: '700',
+    color: THEME.colors.textMuted,
+    letterSpacing: 0.5
+  },
+  tileValue: {
+    fontSize: 14,
+    fontWeight: '800',
+    color: '#FFFFFF'
   },
   adviceBox: {
     flexDirection: 'row',
-    alignItems: 'center',
+    alignItems: 'flex-start',
     gap: 8,
     backgroundColor: THEME.colors.surfaceElevated,
-    padding: 10,
-    borderRadius: THEME.borderRadius.sm,
+    padding: 12,
+    borderRadius: 10,
     borderWidth: 1,
-    borderColor: THEME.colors.border
+    borderColor: THEME.colors.borderSubtle
   },
   adviceText: {
     flex: 1,
     fontSize: 11,
     color: THEME.colors.textPrimary,
-    lineHeight: 15
+    lineHeight: 16
   },
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.82)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 20
-  },
-  modalContainer: {
-    width: '100%',
-    maxWidth: 380,
-    backgroundColor: THEME.colors.surfaceElevated,
-    borderRadius: 16,
-    padding: 20,
-    borderWidth: 1,
-    borderColor: THEME.colors.border
-  },
-  modalHeader: {
+  statusRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 8
+    paddingTop: 4
   },
-  modalTitle: {
-    fontSize: 17,
-    fontWeight: '700',
-    color: '#FFFFFF'
-  },
-  modalDesc: {
-    fontSize: 12,
-    color: THEME.colors.textMuted,
-    lineHeight: 16,
-    marginBottom: 16
-  },
-  inputRow: {
-    marginBottom: 12
-  },
-  inputLabel: {
+  statusMessageText: {
     fontSize: 10,
-    fontWeight: '700',
     color: THEME.colors.textMuted,
-    marginBottom: 4,
-    letterSpacing: 0.5
+    flex: 1
   },
-  textInput: {
-    backgroundColor: THEME.colors.surface,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: THEME.colors.border,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    color: '#FFFFFF',
-    fontSize: 15,
-    fontWeight: '600'
-  },
-  modalActions: {
+  settingsLink: {
     flexDirection: 'row',
-    gap: 10,
-    marginTop: 12
-  },
-  cancelBtn: {
-    flex: 1,
-    paddingVertical: 10,
-    borderRadius: 8,
-    backgroundColor: THEME.colors.surface,
     alignItems: 'center',
-    borderWidth: 1,
-    borderColor: THEME.colors.border
+    gap: 2,
+    paddingLeft: 8
   },
-  cancelBtnText: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: THEME.colors.textMuted
-  },
-  saveBtn: {
-    flex: 2,
-    paddingVertical: 10,
-    borderRadius: 8,
-    backgroundColor: THEME.colors.primary,
-    alignItems: 'center'
-  },
-  saveBtnText: {
-    fontSize: 13,
-    fontWeight: '700',
-    color: '#000000'
+  settingsLinkText: {
+    fontSize: 10,
+    color: THEME.colors.primary,
+    fontWeight: '700'
   }
 });

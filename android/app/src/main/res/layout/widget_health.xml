@@ -18,11 +18,11 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:background="@drawable/widget_green_badge"
-            android:paddingStart="6dp"
+            android:paddingLeft="6dp"
             android:paddingTop="2dp"
-            android:paddingEnd="6dp"
+            android:paddingRight="6dp"
             android:paddingBottom="2dp"
-            android:text="FITBIT AIR"
+            android:text="FITBIT / HEALTH"
             android:textColor="#10B981"
             android:textSize="10sp"
             android:textStyle="bold" />
@@ -30,7 +30,7 @@
         <TextView
             android:layout_width="0dp"
             android:layout_height="wrap_content"
-            android:layout_marginStart="8dp"
+            android:layout_marginLeft="8dp"
             android:layout_weight="1"
             android:text="Readiness"
             android:textColor="#E6EDF3"
@@ -47,7 +47,8 @@
             android:textStyle="bold" />
     </LinearLayout>
 
-    <View
+    <!-- Divider (FrameLayout is supported by RemoteViews; View is forbidden) -->
+    <FrameLayout
         android:layout_width="match_parent"
         android:layout_height="1dp"
         android:layout_marginTop="8dp"
@@ -79,7 +80,7 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="2dp"
-                android:text="7h 42m"
+                android:text="7h 48m"
                 android:textColor="#FFFFFF"
                 android:textSize="14sp"
                 android:textStyle="bold" />
@@ -104,7 +105,7 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="2dp"
-                android:text="8,640"
+                android:text="8,940"
                 android:textColor="#FFFFFF"
                 android:textSize="14sp"
                 android:textStyle="bold" />
@@ -129,7 +130,7 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="2dp"
-                android:text="53 bpm"
+                android:text="52 bpm"
                 android:textColor="#F43F5E"
                 android:textSize="14sp"
                 android:textStyle="bold" />
