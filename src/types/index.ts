@@ -1,0 +1,151 @@
+export type MuscleGroup =
+  | 'Chest'
+  | 'Back'
+  | 'Quads'
+  | 'Hamstrings'
+  | 'Shoulders'
+  | 'Biceps'
+  | 'Triceps'
+  | 'Core'
+  | 'Calves'
+  | 'Glutes'
+  | 'Full Body';
+
+export type Equipment =
+  | 'Barbell'
+  | 'Dumbbell'
+  | 'Machine'
+  | 'Cable'
+  | 'Bodyweight'
+  | 'Smith Machine'
+  | 'Other';
+
+export interface MachineVariant {
+  id: string;
+  exercise_id: string;
+  name: string;
+  brand?: string;
+  seat_setting?: string;
+  resistance_ratio?: number;
+  is_default?: boolean;
+  notes?: string;
+}
+
+export interface Exercise {
+  id: string;
+  name: string;
+  muscle_group: MuscleGroup;
+  equipment: Equipment;
+  is_custom: number;
+  notes?: string;
+  machines?: MachineVariant[];
+  default_reps_min?: number;
+  default_reps_max?: number;
+}
+
+export type SetType = 'normal' | 'warmup' | 'drop' | 'failure';
+
+export interface WorkoutSet {
+  id: string;
+  workout_id: string;
+  exercise_id: string;
+  set_number: number;
+  set_type: SetType;
+  weight: number;
+  reps: number;
+  rpe?: number; // RPE (6-10) or RIR (0-4)
+  is_completed: boolean;
+  is_pr: boolean;
+  pr_type?: 'weight' | 'reps' | '1rm';
+  completed_at?: number;
+  machine_id?: string;
+  machine_name?: string;
+  machine_settings?: string;
+}
+
+export interface ActiveExerciseSession {
+  exercise: Exercise;
+  selectedMachine?: MachineVariant;
+  customRestSeconds?: number;
+  targetRepsMin: number; // e.g. 8
+  targetRepsMax: number; // e.g. 12
+  sets: WorkoutSet[];
+  previousSets?: { weight: number; reps: number; set_type: SetType; rpe?: number; machine_name?: string }[];
+}
+
+export interface Workout {
+  id: string;
+  name: string;
+  start_time: number;
+  end_time?: number;
+  duration_seconds: number;
+  notes?: string;
+  template_id?: string;
+  sets?: WorkoutSet[];
+  totalVolume?: number;
+  totalSets?: number;
+}
+
+export interface Template {
+  id: string;
+  name: string;
+  notes?: string;
+  created_at: number;
+  exercises?: {
+    exercise: Exercise;
+    target_sets: number;
+    target_reps_min?: number;
+    target_reps_max?: number;
+    machine_id?: string;
+  }[];
+}
+
+export interface PRNotification {
+  exerciseId: string;
+  exerciseName: string;
+  type: 'weight' | 'reps' | '1rm';
+  value: number;
+  previousValue: number;
+  unit: 'lbs' | 'kg';
+  timestamp: number;
+}
+
+export interface OverloadPrompt {
+  exerciseId: string;
+  exerciseName: string;
+  currentWeight: number;
+  repsAchieved: number;
+  targetMaxReps: number;
+  recommendedWeight: number;
+  unit: 'lbs' | 'kg';
+}
+
+export interface HealthMetrics {
+  date: string; // YYYY-MM-DD
+  sleepHours: number;
+  sleepScore?: number;
+  readinessScore: number;
+  steps: number;
+  restingHeartRate?: number;
+  hrvMs?: number;
+  lastSyncedAt: number;
+}
+
+export interface UserSettings {
+  unit: 'lbs' | 'kg';
+  defaultRestSeconds: number;
+  barWeightLbs: number;
+  barWeightKg: number;
+  hapticsEnabled: boolean;
+  autoRestTimer: boolean;
+  notificationBarEnabled: boolean;
+  healthConnectSyncEnabled: boolean;
+  rpeScale: 'RPE' | 'RIR'; // 'RPE' (1-10) or 'RIR' (0-4)
+}
+
+export interface ChartDataPoint {
+  x: number | string;
+  y: number;
+  label?: string;
+  sublabel?: string;
+}
