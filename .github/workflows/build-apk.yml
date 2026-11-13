@@ -34,15 +34,22 @@ jobs:
       - name: ⚙️ Expo Prebuild
         run: npx expo prebuild --platform android --no-install
 
-      - name: 🔨 Build Debug APK
+      - name: 🔨 Build Release APK (Standalone with embedded bundle)
         run: |
           cd android
           chmod +x gradlew
-          ./gradlew assembleDebug --no-daemon
+          ./gradlew assembleRelease -Pandroid.enableMinifyInReleaseBuilds=false --no-daemon
 
       - name: 📤 Upload APK Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: Lift-v1.0.0-debug
-          path: android/app/build/outputs/apk/debug/app-debug.apk
+          name: Lift-v1.0.1-release
+          path: android/app/build/outputs/apk/release/app-release.apk
           if-no-files-found: error
+
+      - name: 🚀 Update GitHub Release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          cp android/app/build/outputs/apk/release/app-release.apk Lift-v1.0.0.apk
+          gh release upload v1.0.0 Lift-v1.0.0.apk --clobber || true
