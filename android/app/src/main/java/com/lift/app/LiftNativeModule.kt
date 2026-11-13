@@ -82,7 +82,7 @@ class LiftNativeModule(private val reactContext: ReactApplicationContext) : Reac
     }
 
     @ReactMethod
-    fun updateWidgets(workoutJson: String?, healthJson: String?) {
+    fun updateWidgets(workoutJson: String?) {
         try {
             val prefs = reactContext.getSharedPreferences("LiftPrefs", Context.MODE_PRIVATE).edit()
 
@@ -91,52 +91,46 @@ class LiftNativeModule(private val reactContext: ReactApplicationContext) : Reac
                 if (json.has("workoutName")) prefs.putString("workout_name", json.getString("workoutName"))
                 if (json.has("formattedTime")) prefs.putString("workout_elapsed_time", json.getString("formattedTime"))
                 if (json.has("exerciseName")) prefs.putString("workout_exercise_name", json.getString("exerciseName"))
+                if (json.has("exerciseId")) prefs.putString("workout_exercise_id", json.getString("exerciseId"))
+                if (json.has("setNumber")) prefs.putInt("workout_set_number", json.getInt("setNumber"))
+                if (json.has("weight")) prefs.putFloat("workout_current_weight", json.getDouble("weight").toFloat())
+                if (json.has("reps")) prefs.putInt("workout_current_reps", json.getInt("reps"))
+                if (json.has("unit")) prefs.putString("workout_unit", json.getString("unit"))
                 if (json.has("setDetails")) prefs.putString("workout_set_details", json.getString("setDetails"))
                 if (json.has("statusPill")) prefs.putString("workout_status_pill", json.getString("statusPill"))
                 if (json.has("isActive")) prefs.putBoolean("workout_is_active", json.getBoolean("isActive"))
-            }
-
-            healthJson?.let {
-                val json = JSONObject(it)
-                if (json.has("score")) prefs.putString("health_score", json.getString("score"))
-                if (json.has("sleep")) prefs.putString("health_sleep", json.getString("sleep"))
-                if (json.has("steps")) prefs.putString("health_steps", json.getString("steps"))
-                if (json.has("rhr")) prefs.putString("health_rhr", json.getString("rhr"))
-                if (json.has("advice")) prefs.putString("health_advice", json.getString("advice"))
             }
 
             prefs.apply()
 
             // Trigger widget broadcast
             WorkoutWidgetProvider.updateAllWidgets(reactContext)
-            HealthWidgetProvider.updateAllWidgets(reactContext)
         } catch (e: Exception) {
             e.printStackTrace()
         }
     }
 
     @ReactMethod
-    fun openHealthConnectSettings() {
+    fun getPendingWidgetLogs(promise: Promise) {
         try {
-            val intent = Intent("androidx.health.ACTION_HEALTH_CONNECT_SETTINGS").apply {
-                flags = Intent.FLAG_ACTIVITY_NEW_TASK
-            }
-            if (intent.resolveActivity(reactContext.packageManager) != null) {
-                reactContext.startActivity(intent)
-            } else {
-                // Fallback to Android App Details or Play Store
-                val appSettingsIntent = Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
-                    data = Uri.fromParts("package", reactContext.packageName, null)
-                    flags = Intent.FLAG_ACTIVITY_NEW_TASK
-                }
-                reactContext.startActivity(appSettingsIntent)
-            }
+            val prefs = reactContext.getSharedPreferences("LiftPrefs", Context.MODE_PRIVATE)
+            val logs = prefs.getString("pending_widget_logs", "[]") ?: "[]"
+            promise.resolve(logs)
         } catch (e: Exception) {
-            val appSettingsIntent = Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
-                data = Uri.fromParts("package", reactContext.packageName, null)
-                flags = Intent.FLAG_ACTIVITY_NEW_TASK
-            }
-            reactContext.startActivity(appSettingsIntent)
+            promise.reject("ERR_PREFS", e.message)
+        }
+    }
+
+    @ReactMethod
+    fun clearPendingWidgetLogs(promise: Promise) {
+        try {
+            reactContext.getSharedPreferences("LiftPrefs", Context.MODE_PRIVATE)
+                .edit()
+                .putString("pending_widget_logs", "[]")
+                .apply()
+            promise.resolve(true)
+        } catch (e: Exception) {
+            promise.reject("ERR_PREFS", e.message)
         }
     }
 

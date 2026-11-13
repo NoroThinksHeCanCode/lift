@@ -16,7 +16,6 @@ import { useWorkout } from '../context/WorkoutContext';
 import { deleteTemplate, getAllTemplates, saveTemplate } from '../db/database';
 import { ExerciseSelectorModal } from '../components/exercises/ExerciseSelectorModal';
 import { Badge } from '../components/common/Badge';
-import { ReadinessCard } from '../components/health/ReadinessCard';
 import { triggerHapticSelection, triggerHapticSuccess } from '../utils/haptics';
 
 export const WorkoutsScreen: React.FC = () => {
@@ -117,9 +116,6 @@ export const WorkoutsScreen: React.FC = () => {
       </View>
 
       <ScrollView contentContainerStyle={styles.content}>
-        {/* Daily Recovery & Health Readiness from Fitbit / Google Health */}
-        <ReadinessCard />
-
         {/* Quick Start Card */}
         <View style={styles.quickStartCard}>
           <View style={styles.quickStartInfo}>

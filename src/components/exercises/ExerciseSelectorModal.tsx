@@ -41,8 +41,11 @@ export const ExerciseSelectorModal: React.FC<ExerciseSelectorModalProps> = ({
 
   const filtered = exercises.filter(ex => {
     const matchesGroup = selectedGroup === 'All' || ex.muscle_group === selectedGroup;
-    const matchesSearch = ex.name.toLowerCase().includes(search.toLowerCase()) ||
-                          ex.equipment.toLowerCase().includes(search.toLowerCase());
+    const query = search.toLowerCase();
+    const matchesSearch =
+      ex.name.toLowerCase().includes(query) ||
+      ex.equipment.toLowerCase().includes(query) ||
+      (ex.joint_action ? ex.joint_action.toLowerCase().includes(query) : false);
     return matchesGroup && matchesSearch;
   });
 
@@ -58,32 +61,32 @@ export const ExerciseSelectorModal: React.FC<ExerciseSelectorModalProps> = ({
         {/* Header */}
         <View style={styles.header}>
           <TouchableOpacity onPress={onClose} style={styles.closeBtn}>
-            <Ionicons name="close" size={24} color={THEME.colors.textPrimary} />
+            <Ionicons name="close" size={24} color="#FFFFFF" />
           </TouchableOpacity>
           <Text style={styles.headerTitle}>Select Exercise</Text>
           <TouchableOpacity
             style={styles.newBtn}
             onPress={() => setShowCreateModal(true)}
           >
-            <Ionicons name="add" size={20} color={THEME.colors.primary} />
+            <Ionicons name="add" size={18} color="#000000" />
             <Text style={styles.newBtnText}>Custom</Text>
           </TouchableOpacity>
         </View>
 
         {/* Search Bar */}
         <View style={styles.searchRow}>
-          <Ionicons name="search" size={18} color={THEME.colors.textMuted} style={styles.searchIcon} />
+          <Ionicons name="search" size={18} color="#737373" style={styles.searchIcon} />
           <TextInput
             style={styles.searchInput}
-            placeholder="Search exercises or equipment..."
-            placeholderTextColor={THEME.colors.textMuted}
+            placeholder="Search exercise, muscle, or joint action..."
+            placeholderTextColor="#737373"
             value={search}
             onChangeText={setSearch}
             clearButtonMode="while-editing"
           />
           {search.length > 0 && (
             <TouchableOpacity onPress={() => setSearch('')}>
-              <Ionicons name="close-circle" size={18} color={THEME.colors.textMuted} />
+              <Ionicons name="close-circle" size={18} color="#737373" />
             </TouchableOpacity>
           )}
         </View>
@@ -127,18 +130,24 @@ export const ExerciseSelectorModal: React.FC<ExerciseSelectorModalProps> = ({
                 <Text style={styles.itemName}>{item.name}</Text>
                 <View style={styles.tagRow}>
                   <Badge label={item.muscle_group} variant="primary" size="sm" />
+                  {item.joint_action ? (
+                    <View style={styles.jointActionBadge}>
+                      <Ionicons name="body-outline" size={10} color="#06B6D4" />
+                      <Text style={styles.jointActionText}>{item.joint_action}</Text>
+                    </View>
+                  ) : null}
                   <Badge label={item.equipment} variant="surface" size="sm" />
                   {item.is_custom === 1 && (
                     <Badge label="CUSTOM" variant="gold" size="sm" />
                   )}
                 </View>
               </View>
-              <Ionicons name="chevron-forward" size={18} color={THEME.colors.textMuted} />
+              <Ionicons name="chevron-forward" size={18} color="#737373" />
             </TouchableOpacity>
           )}
           ListEmptyComponent={
             <View style={styles.emptyContainer}>
-              <Ionicons name="barbell-outline" size={48} color={THEME.colors.textMuted} />
+              <Ionicons name="barbell-outline" size={48} color="#737373" />
               <Text style={styles.emptyTitle}>No exercises found</Text>
               <Text style={styles.emptySubtitle}>Try adjusting your search or create a custom one.</Text>
             </View>
@@ -162,7 +171,7 @@ export const ExerciseSelectorModal: React.FC<ExerciseSelectorModalProps> = ({
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: THEME.colors.bg
+    backgroundColor: '#000000'
   },
   header: {
     flexDirection: 'row',
@@ -172,12 +181,12 @@ const styles = StyleSheet.create({
     paddingTop: 54,
     paddingBottom: 14,
     borderBottomWidth: 1,
-    borderColor: THEME.colors.border
+    borderColor: '#262626'
   },
   headerTitle: {
     fontSize: 18,
     fontWeight: '700',
-    color: THEME.colors.textPrimary
+    color: '#FFFFFF'
   },
   closeBtn: {
     padding: 6
@@ -185,13 +194,13 @@ const styles = StyleSheet.create({
   newBtn: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: 4,
-    paddingHorizontal: 8,
+    paddingVertical: 5,
+    paddingHorizontal: 10,
     borderRadius: 8,
-    backgroundColor: THEME.colors.primaryGlow
+    backgroundColor: THEME.colors.primary
   },
   newBtnText: {
-    color: THEME.colors.primary,
+    color: '#000000',
     fontSize: 13,
     fontWeight: '700',
     marginLeft: 2
@@ -199,96 +208,115 @@ const styles = StyleSheet.create({
   searchRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: THEME.colors.surface,
+    backgroundColor: '#121212',
     marginHorizontal: 16,
     marginTop: 12,
     marginBottom: 8,
-    borderRadius: THEME.borderRadius.md,
+    borderRadius: 10,
     paddingHorizontal: 12,
     borderWidth: 1,
-    borderColor: THEME.colors.border
+    borderColor: '#262626'
   },
   searchIcon: {
     marginRight: 8
   },
   searchInput: {
     flex: 1,
-    height: 42,
-    color: THEME.colors.textPrimary,
-    fontSize: 15
+    height: 40,
+    color: '#FFFFFF',
+    fontSize: 14
   },
   filterBar: {
-    height: 44,
-    marginBottom: 4
+    paddingVertical: 6,
+    borderBottomWidth: 1,
+    borderColor: '#1C1C1C'
   },
   filterList: {
     paddingHorizontal: 16,
-    gap: 8,
-    alignItems: 'center'
+    gap: 8
   },
   filterChip: {
-    backgroundColor: THEME.colors.surface,
-    paddingHorizontal: 14,
+    paddingHorizontal: 12,
     paddingVertical: 6,
-    borderRadius: THEME.borderRadius.full,
+    borderRadius: 8,
+    backgroundColor: '#121212',
     borderWidth: 1,
-    borderColor: THEME.colors.border
+    borderColor: '#262626'
   },
   filterChipActive: {
-    backgroundColor: THEME.colors.primary,
+    backgroundColor: `${THEME.colors.primary}20`,
     borderColor: THEME.colors.primary
   },
   filterChipText: {
-    color: THEME.colors.textSecondary,
     fontSize: 12,
-    fontWeight: '700'
+    color: '#A8A8A8',
+    fontWeight: '600'
   },
   filterChipTextActive: {
-    color: '#0A0C10'
+    color: THEME.colors.primary,
+    fontWeight: '700'
   },
   listContent: {
-    paddingHorizontal: 16,
-    paddingBottom: 32
+    padding: 16,
+    gap: 8
   },
   exerciseItem: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    backgroundColor: THEME.colors.surface,
+    backgroundColor: '#000000',
     padding: 14,
-    borderRadius: THEME.borderRadius.md,
-    marginBottom: 8,
+    borderRadius: 12,
     borderWidth: 1,
-    borderColor: THEME.colors.border
+    borderColor: '#262626'
   },
   itemInfo: {
     flex: 1,
-    gap: 6
+    marginRight: 12
   },
   itemName: {
     fontSize: 15,
     fontWeight: '700',
-    color: THEME.colors.textPrimary
+    color: '#FFFFFF',
+    marginBottom: 6
   },
   tagRow: {
     flexDirection: 'row',
+    alignItems: 'center',
+    flexWrap: 'wrap',
     gap: 6
   },
+  jointActionBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 3,
+    backgroundColor: 'rgba(6, 182, 212, 0.1)',
+    paddingHorizontal: 7,
+    paddingVertical: 2,
+    borderRadius: 6,
+    borderWidth: 1,
+    borderColor: 'rgba(6, 182, 212, 0.25)'
+  },
+  jointActionText: {
+    fontSize: 10,
+    fontWeight: '700',
+    color: '#06B6D4'
+  },
   emptyContainer: {
-    padding: 40,
     alignItems: 'center',
     justifyContent: 'center',
+    paddingVertical: 60,
     gap: 8
   },
   emptyTitle: {
     fontSize: 16,
     fontWeight: '700',
-    color: THEME.colors.textPrimary,
+    color: '#FFFFFF',
     marginTop: 8
   },
   emptySubtitle: {
     fontSize: 13,
-    color: THEME.colors.textMuted,
+    color: '#737373',
     textAlign: 'center'
   }
 });

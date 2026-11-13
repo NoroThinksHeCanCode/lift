@@ -40,7 +40,7 @@ jobs:
       - name: 📤 Upload APK Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: Lift-v1.0.2-release
+          name: Lift-v1.0.3-release
           path: android/app/build/outputs/apk/release/app-release.apk
           if-no-files-found: error
 
@@ -48,7 +48,8 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          cp android/app/build/outputs/apk/release/app-release.apk Lift-v1.0.2.apk
-          gh release upload v1.0.0 Lift-v1.0.2.apk#Lift-v1.0.0.apk --clobber || true
-          gh release upload v1.0.1 Lift-v1.0.2.apk#Lift-v1.0.1.apk --clobber || true
-          gh release create v1.0.2 Lift-v1.0.2.apk --title "Lift v1.0.2 (Android APK)" --notes "Lift v1.0.2 standalone APK with fixed Android widgets, direct Google Health Connect API integration, and responsive recovery UI." || true
+          cp android/app/build/outputs/apk/release/app-release.apk Lift-v1.0.3.apk
+          gh release upload v1.0.0 Lift-v1.0.3.apk#Lift-v1.0.0.apk --clobber || true
+          gh release upload v1.0.1 Lift-v1.0.3.apk#Lift-v1.0.1.apk --clobber || true
+          gh release upload v1.0.2 Lift-v1.0.3.apk#Lift-v1.0.2.apk --clobber || true
+          gh release create v1.0.3 Lift-v1.0.3.apk --title "Lift v1.0.3 (Android APK)" --notes "Lift v1.0.3: Interactive home screen widget logging (+/- reps & weight, LOG SET button), workout-wide rest timer, workout-wide rep range with toggle menu, fixed digit padding & removed presets, exercise notes menu, joint action exercise classification tags, AMOLED pitch black Instagram dark mode theme, removed Google Health Connect." || true

@@ -12,12 +12,13 @@ import {
 import {
   checkPersonalRecord,
   getPreviousSetsForExercise,
-  saveCompletedWorkout
+  saveCompletedWorkout,
+  updateExerciseNotes
 } from '../db/database';
 import { triggerHapticPR, triggerHapticTimerComplete, triggerHapticSuccess } from '../utils/haptics';
 import { useSettings } from './SettingsContext';
 import { updateOngoingWorkoutNotification, clearOngoingWorkoutNotification } from '../services/notificationService';
-import { syncActiveWorkoutToWidget, WorkoutWidgetData } from '../services/widgetService';
+import { syncActiveWorkoutToWidget, getPendingWidgetLogs, clearPendingWidgetLogs, WorkoutWidgetData } from '../services/widgetService';
 
 interface WorkoutContextValue {
   isWorkoutActive: boolean;
@@ -32,13 +33,23 @@ interface WorkoutContextValue {
   addExerciseToWorkout: (exercise: Exercise, machine?: MachineVariant) => Promise<void>;
   removeExerciseFromWorkout: (exerciseId: string) => void;
   setExerciseMachine: (exerciseId: string, machine: MachineVariant) => Promise<void>;
-  setExerciseCustomRest: (exerciseId: string, seconds: number) => void;
-  setExerciseTargetRepRange: (exerciseId: string, min: number, max: number) => void;
+  setExerciseTargetRepRange: (exerciseId: string, min: number, max: number, applyToAll?: boolean) => void;
+  setExerciseNotes: (exerciseId: string, notes: string) => Promise<void>;
   applyOverloadIncrease: (exerciseId: string, newWeight: number) => void;
   addSet: (exerciseId: string, setType?: SetType) => void;
   removeSet: (exerciseId: string, setId: string) => void;
   updateSet: (exerciseId: string, setId: string, updates: Partial<WorkoutSet>) => void;
   toggleSetCompleted: (exerciseId: string, setId: string) => Promise<void>;
+
+  // Global Workout Rest Timer (workout-wide)
+  workoutRestSeconds: number;
+  setWorkoutRestSeconds: (seconds: number) => void;
+
+  // Workout-Wide Rep Range
+  workoutRepRange: { min: number; max: number };
+  isWorkoutRepRangeLocked: boolean;
+  setWorkoutRepRange: (min: number, max: number, applyToAll?: boolean) => void;
+  toggleWorkoutRepRange: (locked: boolean) => void;
 
   elapsedSeconds: number;
   formattedWorkoutTime: string;
@@ -68,6 +79,13 @@ export const WorkoutProvider: React.FC<{ children: React.ReactNode }> = ({ child
   const [activeExercises, setActiveExercises] = useState<ActiveExerciseSession[]>([]);
   const [isWorkoutModalVisible, setIsWorkoutModalVisible] = useState<boolean>(false);
 
+  // Global workout-wide rest timer
+  const [workoutRestSeconds, setWorkoutRestSeconds] = useState<number>(settings.defaultRestSeconds || 90);
+
+  // Workout-wide rep range setting & toggle
+  const [workoutRepRange, setWorkoutRepRangeState] = useState<{ min: number; max: number }>({ min: 8, max: 12 });
+  const [isWorkoutRepRangeLocked, setIsWorkoutRepRangeLocked] = useState<boolean>(true);
+
   const [elapsedSeconds, setElapsedSeconds] = useState<number>(0);
   const workoutStartRef = useRef<number | null>(null);
 
@@ -83,6 +101,7 @@ export const WorkoutProvider: React.FC<{ children: React.ReactNode }> = ({ child
     if (!activeWorkout) return;
 
     let currentExName = 'Lift Workout Active';
+    let currentExId = '';
     let currentSetNum = 1;
     let nextWeight = 0;
     let nextReps = 10;
@@ -93,6 +112,7 @@ export const WorkoutProvider: React.FC<{ children: React.ReactNode }> = ({ child
         currentExName = exSession.selectedMachine
           ? `${exSession.exercise.name} (${exSession.selectedMachine.name})`
           : exSession.exercise.name;
+        currentExId = exSession.exercise.id;
         currentSetNum = incomplete.set_number;
         nextWeight = incomplete.weight;
         nextReps = incomplete.reps;
@@ -117,13 +137,48 @@ export const WorkoutProvider: React.FC<{ children: React.ReactNode }> = ({ child
       workoutName: activeWorkout.name,
       elapsedSeconds: timeSeconds,
       exerciseName: currentExName,
+      exerciseId: currentExId,
       setNumber: currentSetNum,
       weight: nextWeight,
       reps: nextReps,
       unit: settings.unit,
-      lastUpdated: Date.now()
+      lastUpdated: Date.now(),
+      restRemaining: currentRest
     };
     syncActiveWorkoutToWidget(widgetData);
+  };
+
+  // Consume pending widget logs
+  const checkPendingWidgetLogs = async () => {
+    if (!activeWorkout || activeExercises.length === 0) return;
+    try {
+      const logs = await getPendingWidgetLogs();
+      if (logs && logs.length > 0) {
+        for (const log of logs) {
+          let targetEx = activeExercises.find(e => e.exercise.id === log.exerciseId) || activeExercises[0];
+          if (targetEx) {
+            let targetSet = targetEx.sets.find(s => !s.is_completed);
+            if (targetSet) {
+              await updateSet(targetEx.exercise.id, targetSet.id, {
+                weight: log.weight,
+                reps: log.reps,
+                is_completed: true,
+                completed_at: log.timestamp || Date.now()
+              });
+              if (settings.autoRestTimer) {
+                startRestTimer(workoutRestSeconds);
+              }
+            } else {
+              // Add a new set and complete it
+              addSet(targetEx.exercise.id);
+            }
+          }
+        }
+        await clearPendingWidgetLogs();
+      }
+    } catch (e) {
+      console.warn('Error checking pending widget logs:', e);
+    }
   };
 
   useEffect(() => {
@@ -137,6 +192,7 @@ export const WorkoutProvider: React.FC<{ children: React.ReactNode }> = ({ child
           const diff = Math.floor((Date.now() - workoutStartRef.current) / 1000);
           setElapsedSeconds(diff);
           syncExternalBridges(diff, activeExercises, restRemaining);
+          checkPendingWidgetLogs();
         }
       }, 1000);
     } else {
@@ -158,7 +214,7 @@ export const WorkoutProvider: React.FC<{ children: React.ReactNode }> = ({ child
     return () => {
       if (interval) clearInterval(interval);
     };
-  }, [activeWorkout, activeExercises, restRemaining, isRestTimerActive]);
+  }, [activeWorkout, activeExercises, restRemaining, isRestTimerActive, workoutRestSeconds]);
 
   useEffect(() => {
     let interval: ReturnType<typeof setInterval> | null = null;
@@ -183,7 +239,7 @@ export const WorkoutProvider: React.FC<{ children: React.ReactNode }> = ({ child
   }, [isRestTimerActive, settings.hapticsEnabled]);
 
   const startRestTimer = (seconds?: number) => {
-    const total = seconds || settings.defaultRestSeconds;
+    const total = seconds || workoutRestSeconds || settings.defaultRestSeconds;
     setRestTotal(total);
     setRestRemaining(total);
     restTimerEndRef.current = Date.now() + total * 1000;
@@ -218,6 +274,49 @@ export const WorkoutProvider: React.FC<{ children: React.ReactNode }> = ({ child
     restTimerEndRef.current = null;
   };
 
+  const setWorkoutRepRange = (min: number, max: number, applyToAll: boolean = true) => {
+    setWorkoutRepRangeState({ min, max });
+    if (applyToAll) {
+      setActiveExercises(prev =>
+        prev.map(item => ({
+          ...item,
+          targetRepsMin: min,
+          targetRepsMax: max
+        }))
+      );
+    }
+  };
+
+  const toggleWorkoutRepRange = (locked: boolean) => {
+    setIsWorkoutRepRangeLocked(locked);
+    if (locked) {
+      setActiveExercises(prev =>
+        prev.map(item => ({
+          ...item,
+          targetRepsMin: workoutRepRange.min,
+          targetRepsMax: workoutRepRange.max
+        }))
+      );
+    }
+  };
+
+  const setExerciseTargetRepRange = (exerciseId: string, min: number, max: number, applyToAll?: boolean) => {
+    if (applyToAll || isWorkoutRepRangeLocked) {
+      setWorkoutRepRange(min, max, true);
+    } else {
+      setActiveExercises(prev =>
+        prev.map(item => (item.exercise.id === exerciseId ? { ...item, targetRepsMin: min, targetRepsMax: max } : item))
+      );
+    }
+  };
+
+  const setExerciseNotes = async (exerciseId: string, notes: string) => {
+    setActiveExercises(prev =>
+      prev.map(item => (item.exercise.id === exerciseId ? { ...item, notes } : item))
+    );
+    await updateExerciseNotes(exerciseId, notes);
+  };
+
   const startWorkout = async (
     name?: string,
     templateId?: string,
@@ -226,6 +325,7 @@ export const WorkoutProvider: React.FC<{ children: React.ReactNode }> = ({ child
     const workoutId = `workout_${Date.now()}`;
     const startTime = Date.now();
     workoutStartRef.current = startTime;
+    setWorkoutRestSeconds(settings.defaultRestSeconds || 90);
 
     const newWorkout: Workout = {
       id: workoutId,
@@ -266,8 +366,9 @@ export const WorkoutProvider: React.FC<{ children: React.ReactNode }> = ({ child
         seededSessions.push({
           exercise: item.exercise,
           selectedMachine: defaultMachine,
-          targetRepsMin: 8,
-          targetRepsMax: 12,
+          notes: item.exercise.notes || '',
+          targetRepsMin: workoutRepRange.min,
+          targetRepsMax: workoutRepRange.max,
           sets,
           previousSets: prevSets
         });
@@ -307,8 +408,9 @@ export const WorkoutProvider: React.FC<{ children: React.ReactNode }> = ({ child
       {
         exercise,
         selectedMachine: chosenMachine,
-        targetRepsMin: 8,
-        targetRepsMax: 12,
+        notes: exercise.notes || '',
+        targetRepsMin: isWorkoutRepRangeLocked ? workoutRepRange.min : 8,
+        targetRepsMax: isWorkoutRepRangeLocked ? workoutRepRange.max : 12,
         sets: [initialSet],
         previousSets: prevSets
       }
@@ -333,18 +435,6 @@ export const WorkoutProvider: React.FC<{ children: React.ReactNode }> = ({ child
           previousSets: prevSets
         };
       })
-    );
-  };
-
-  const setExerciseCustomRest = (exerciseId: string, seconds: number) => {
-    setActiveExercises(prev =>
-      prev.map(item => (item.exercise.id === exerciseId ? { ...item, customRestSeconds: seconds } : item))
-    );
-  };
-
-  const setExerciseTargetRepRange = (exerciseId: string, min: number, max: number) => {
-    setActiveExercises(prev =>
-      prev.map(item => (item.exercise.id === exerciseId ? { ...item, targetRepsMin: min, targetRepsMax: max } : item))
     );
   };
 
@@ -484,7 +574,7 @@ export const WorkoutProvider: React.FC<{ children: React.ReactNode }> = ({ child
         });
       }
 
-      // 2. Check for Progressive Overload (Feature 1: Prompt to increase load when hitting target reps)
+      // 2. Progressive Overload Prompt
       if (targetSet.reps >= targetExerciseSession.targetRepsMax && targetSet.weight > 0) {
         const stepIncrease = settings.unit === 'lbs' ? 5 : 2.5;
         const overloadPrompt: OverloadPrompt = {
@@ -496,16 +586,14 @@ export const WorkoutProvider: React.FC<{ children: React.ReactNode }> = ({ child
           recommendedWeight: targetSet.weight + stepIncrease,
           unit: settings.unit
         };
-        // Show prompt if not already showing PR
         setTimeout(() => {
           setCurrentOverloadPrompt(overloadPrompt);
         }, 500);
       }
 
-      // 3. Auto start rest timer
+      // 3. Auto start workout-wide rest timer
       if (settings.autoRestTimer) {
-        const restDuration = targetExerciseSession.customRestSeconds || settings.defaultRestSeconds;
-        startRestTimer(restDuration);
+        startRestTimer(workoutRestSeconds);
       }
     } else {
       updateSet(exerciseId, setId, {
@@ -585,13 +673,19 @@ export const WorkoutProvider: React.FC<{ children: React.ReactNode }> = ({ child
         addExerciseToWorkout,
         removeExerciseFromWorkout,
         setExerciseMachine,
-        setExerciseCustomRest,
         setExerciseTargetRepRange,
+        setExerciseNotes,
         applyOverloadIncrease,
         addSet,
         removeSet,
         updateSet,
         toggleSetCompleted,
+        workoutRestSeconds,
+        setWorkoutRestSeconds,
+        workoutRepRange,
+        isWorkoutRepRangeLocked,
+        setWorkoutRepRange,
+        toggleWorkoutRepRange,
         elapsedSeconds,
         formattedWorkoutTime: formatTimer(elapsedSeconds),
         restRemaining,

@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, Modal, ScrollView, Alert } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { Equipment, Exercise, MuscleGroup } from '../../types';
+import { Equipment, Exercise, MuscleGroup, JointAction } from '../../types';
 import { THEME } from '../../constants/theme';
 import { createCustomExercise } from '../../db/database';
 import { triggerHapticSelection, triggerHapticSuccess } from '../../utils/haptics';
@@ -20,6 +20,26 @@ const EQUIPMENTS: Equipment[] = [
   'Barbell', 'Dumbbell', 'Machine', 'Cable', 'Bodyweight', 'Smith Machine', 'Other'
 ];
 
+const JOINT_ACTIONS: JointAction[] = [
+  'Horizontal Adduction',
+  'Horizontal Abduction',
+  'Shoulder Flexion',
+  'Shoulder Extension',
+  'Shoulder Abduction',
+  'Shoulder Adduction',
+  'Elbow Flexion',
+  'Elbow Extension',
+  'Hip Extension',
+  'Hip Hinge',
+  'Knee Extension',
+  'Knee Flexion',
+  'Plantarflexion',
+  'Spinal Flexion',
+  'Spinal Extension',
+  'Compound Movement',
+  'Other'
+];
+
 export const CreateExerciseModal: React.FC<CreateExerciseModalProps> = ({
   visible,
   onClose,
@@ -28,6 +48,7 @@ export const CreateExerciseModal: React.FC<CreateExerciseModalProps> = ({
   const [name, setName] = useState('');
   const [muscleGroup, setMuscleGroup] = useState<MuscleGroup>('Chest');
   const [equipment, setEquipment] = useState<Equipment>('Barbell');
+  const [jointAction, setJointAction] = useState<JointAction>('Horizontal Adduction');
   const [notes, setNotes] = useState('');
   const [saving, setSaving] = useState(false);
 
@@ -38,7 +59,7 @@ export const CreateExerciseModal: React.FC<CreateExerciseModalProps> = ({
     }
     setSaving(true);
     try {
-      const created = await createCustomExercise(name, muscleGroup, equipment, notes);
+      const created = await createCustomExercise(name, muscleGroup, equipment, jointAction, notes);
       triggerHapticSuccess();
       onCreated(created);
       setName('');
@@ -57,7 +78,7 @@ export const CreateExerciseModal: React.FC<CreateExerciseModalProps> = ({
       <View style={styles.container}>
         <View style={styles.header}>
           <TouchableOpacity onPress={onClose} style={styles.closeBtn}>
-            <Ionicons name="close" size={24} color={THEME.colors.textPrimary} />
+            <Ionicons name="close" size={24} color="#FFFFFF" />
           </TouchableOpacity>
           <Text style={styles.headerTitle}>New Custom Exercise</Text>
           <TouchableOpacity onPress={handleSave} disabled={saving} style={styles.saveBtn}>
@@ -72,7 +93,7 @@ export const CreateExerciseModal: React.FC<CreateExerciseModalProps> = ({
             <TextInput
               style={styles.input}
               placeholder="e.g. Incline Smith Press, Pendlay Row..."
-              placeholderTextColor={THEME.colors.textMuted}
+              placeholderTextColor="#737373"
               value={name}
               onChangeText={setName}
             />
@@ -93,6 +114,27 @@ export const CreateExerciseModal: React.FC<CreateExerciseModalProps> = ({
                 >
                   <Text style={[styles.pillText, muscleGroup === mg && styles.pillTextActive]}>
                     {mg}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+          </View>
+
+          {/* Joint Action Classification */}
+          <View style={styles.fieldGroup}>
+            <Text style={styles.label}>CLASSIFY BY JOINT ACTION</Text>
+            <View style={styles.pillsWrap}>
+              {JOINT_ACTIONS.map((ja) => (
+                <TouchableOpacity
+                  key={ja}
+                  style={[styles.pill, jointAction === ja && styles.pillActiveCyan]}
+                  onPress={() => {
+                    triggerHapticSelection();
+                    setJointAction(ja);
+                  }}
+                >
+                  <Text style={[styles.pillText, jointAction === ja && styles.pillTextCyanActive]}>
+                    {ja}
                   </Text>
                 </TouchableOpacity>
               ))}
@@ -122,11 +164,11 @@ export const CreateExerciseModal: React.FC<CreateExerciseModalProps> = ({
 
           {/* Notes */}
           <View style={styles.fieldGroup}>
-            <Text style={styles.label}>NOTES / CUES (OPTIONAL)</Text>
+            <Text style={styles.label}>EXERCISE NOTES / CUES (OPTIONAL)</Text>
             <TextInput
               style={[styles.input, styles.textArea]}
               placeholder="Form tips, seat settings, cue notes..."
-              placeholderTextColor={THEME.colors.textMuted}
+              placeholderTextColor="#737373"
               multiline
               numberOfLines={3}
               value={notes}
@@ -142,7 +184,7 @@ export const CreateExerciseModal: React.FC<CreateExerciseModalProps> = ({
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: THEME.colors.bg
+    backgroundColor: '#000000'
   },
   header: {
     flexDirection: 'row',
@@ -152,12 +194,12 @@ const styles = StyleSheet.create({
     paddingTop: 54,
     paddingBottom: 16,
     borderBottomWidth: 1,
-    borderColor: THEME.colors.border
+    borderColor: '#262626'
   },
   headerTitle: {
     fontSize: 18,
     fontWeight: '700',
-    color: THEME.colors.textPrimary
+    color: '#FFFFFF'
   },
   closeBtn: {
     padding: 6
@@ -169,7 +211,7 @@ const styles = StyleSheet.create({
     borderRadius: 8
   },
   saveBtnText: {
-    color: '#0A0C10',
+    color: '#000000',
     fontWeight: '800',
     fontSize: 14
   },
@@ -183,17 +225,17 @@ const styles = StyleSheet.create({
   label: {
     fontSize: 11,
     fontWeight: '800',
-    color: THEME.colors.textMuted,
+    color: '#737373',
     letterSpacing: 0.8
   },
   input: {
-    backgroundColor: THEME.colors.surface,
+    backgroundColor: '#000000',
     borderWidth: 1,
-    borderColor: THEME.colors.border,
-    borderRadius: THEME.borderRadius.md,
+    borderColor: '#262626',
+    borderRadius: 10,
     paddingHorizontal: 14,
     paddingVertical: 12,
-    color: THEME.colors.textPrimary,
+    color: '#FFFFFF',
     fontSize: 15
   },
   textArea: {
@@ -206,24 +248,32 @@ const styles = StyleSheet.create({
     gap: 8
   },
   pill: {
-    backgroundColor: THEME.colors.surface,
+    backgroundColor: '#000000',
     paddingHorizontal: 12,
     paddingVertical: 8,
     borderRadius: 8,
     borderWidth: 1,
-    borderColor: THEME.colors.border
+    borderColor: '#262626'
   },
   pillActive: {
-    backgroundColor: THEME.colors.primaryGlow,
+    backgroundColor: `${THEME.colors.primary}20`,
     borderColor: THEME.colors.primary
   },
+  pillActiveCyan: {
+    backgroundColor: 'rgba(6, 182, 212, 0.15)',
+    borderColor: '#06B6D4'
+  },
   pillText: {
-    color: THEME.colors.textSecondary,
+    color: '#A8A8A8',
     fontSize: 13,
     fontWeight: '600'
   },
   pillTextActive: {
     color: THEME.colors.primary,
+    fontWeight: '700'
+  },
+  pillTextCyanActive: {
+    color: '#06B6D4',
     fontWeight: '700'
   }
 });

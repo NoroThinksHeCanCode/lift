@@ -5,10 +5,11 @@
     android:layout_height="match_parent"
     android:background="@drawable/widget_bg"
     android:orientation="vertical"
-    android:padding="14dp">
+    android:padding="12dp">
 
     <!-- Header Row -->
     <LinearLayout
+        android:id="@+id/widget_header_bar"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:gravity="center_vertical"
@@ -36,8 +37,8 @@
             android:ellipsize="end"
             android:maxLines="1"
             android:text="No Active Workout"
-            android:textColor="#E6EDF3"
-            android:textSize="13sp"
+            android:textColor="#FFFFFF"
+            android:textSize="12sp"
             android:textStyle="bold" />
 
         <TextView
@@ -46,60 +47,169 @@
             android:layout_height="wrap_content"
             android:text="00:00"
             android:textColor="#10B981"
-            android:textSize="13sp"
+            android:textSize="12sp"
             android:textStyle="bold" />
     </LinearLayout>
 
-    <!-- Divider (FrameLayout is supported by RemoteViews; View is forbidden) -->
+    <!-- Divider -->
     <FrameLayout
         android:layout_width="match_parent"
         android:layout_height="1dp"
-        android:layout_marginTop="8dp"
-        android:layout_marginBottom="8dp"
-        android:background="#1E222D" />
+        android:layout_marginTop="6dp"
+        android:layout_marginBottom="6dp"
+        android:background="#262626" />
 
-    <!-- Current Exercise -->
-    <TextView
-        android:id="@+id/tv_exercise_name"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:ellipsize="end"
-        android:maxLines="1"
-        android:text="Tap to start a session"
-        android:textColor="#FFFFFF"
-        android:textSize="15sp"
-        android:textStyle="bold" />
-
-    <!-- Set Information -->
-    <TextView
-        android:id="@+id/tv_set_details"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="3dp"
-        android:text="Set 1 • Ready to lift"
-        android:textColor="#8B949E"
-        android:textSize="12sp" />
-
-    <!-- Bottom Status Pill -->
+    <!-- Current Exercise & Set Indicator -->
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginTop="8dp"
-        android:background="@drawable/widget_pill_bg"
         android:gravity="center_vertical"
-        android:orientation="horizontal"
-        android:paddingLeft="8dp"
-        android:paddingTop="4dp"
-        android:paddingRight="8dp"
-        android:paddingBottom="4dp">
+        android:orientation="horizontal">
 
         <TextView
-            android:id="@+id/tv_status_pill"
+            android:id="@+id/tv_exercise_name"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:ellipsize="end"
+            android:maxLines="1"
+            android:text="Tap to start a session"
+            android:textColor="#FFFFFF"
+            android:textSize="14sp"
+            android:textStyle="bold" />
+
+        <TextView
+            android:id="@+id/tv_set_details"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="⚡ Open App to Log Sets"
-            android:textColor="#58A6FF"
-            android:textSize="11sp" />
+            android:text="Set 1"
+            android:textColor="#A8A8A8"
+            android:textSize="11sp"
+            android:textStyle="bold" />
     </LinearLayout>
+
+    <!-- Interactive Steppers Row (Weight and Reps) -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="6dp"
+        android:orientation="horizontal">
+
+        <!-- Weight Stepper Box -->
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginRight="4dp"
+            android:layout_weight="1"
+            android:background="@drawable/widget_pill_bg"
+            android:gravity="center"
+            android:orientation="horizontal"
+            android:padding="3dp">
+
+            <TextView
+                android:id="@+id/btn_dec_weight"
+                android:layout_width="28dp"
+                android:layout_height="28dp"
+                android:background="@drawable/widget_btn_bg"
+                android:gravity="center"
+                android:text="–"
+                android:textColor="#FFFFFF"
+                android:textSize="15sp"
+                android:textStyle="bold" />
+
+            <TextView
+                android:id="@+id/tv_current_weight"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:gravity="center"
+                android:text="80 kg"
+                android:textColor="#FFFFFF"
+                android:textSize="12sp"
+                android:textStyle="bold" />
+
+            <TextView
+                android:id="@+id/btn_inc_weight"
+                android:layout_width="28dp"
+                android:layout_height="28dp"
+                android:background="@drawable/widget_btn_bg"
+                android:gravity="center"
+                android:text="+"
+                android:textColor="#FFFFFF"
+                android:textSize="15sp"
+                android:textStyle="bold" />
+        </LinearLayout>
+
+        <!-- Reps Stepper Box -->
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginLeft="4dp"
+            android:layout_weight="1"
+            android:background="@drawable/widget_pill_bg"
+            android:gravity="center"
+            android:orientation="horizontal"
+            android:padding="3dp">
+
+            <TextView
+                android:id="@+id/btn_dec_reps"
+                android:layout_width="28dp"
+                android:layout_height="28dp"
+                android:background="@drawable/widget_btn_bg"
+                android:gravity="center"
+                android:text="–"
+                android:textColor="#FFFFFF"
+                android:textSize="15sp"
+                android:textStyle="bold" />
+
+            <TextView
+                android:id="@+id/tv_current_reps"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:gravity="center"
+                android:text="10 reps"
+                android:textColor="#FFFFFF"
+                android:textSize="12sp"
+                android:textStyle="bold" />
+
+            <TextView
+                android:id="@+id/btn_inc_reps"
+                android:layout_width="28dp"
+                android:layout_height="28dp"
+                android:background="@drawable/widget_btn_bg"
+                android:gravity="center"
+                android:text="+"
+                android:textColor="#FFFFFF"
+                android:textSize="15sp"
+                android:textStyle="bold" />
+        </LinearLayout>
+    </LinearLayout>
+
+    <!-- Prominent [✓ LOG SET] Button -->
+    <TextView
+        android:id="@+id/btn_log_set"
+        android:layout_width="match_parent"
+        android:layout_height="32dp"
+        android:layout_marginTop="6dp"
+        android:background="@drawable/widget_log_btn_bg"
+        android:gravity="center"
+        android:text="✓ LOG SET"
+        android:textColor="#000000"
+        android:textSize="12sp"
+        android:textStyle="bold" />
+
+    <!-- Bottom Status Text -->
+    <TextView
+        android:id="@+id/tv_status_pill"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="4dp"
+        android:ellipsize="end"
+        android:gravity="center"
+        android:maxLines="1"
+        android:text="⚡ Log reps &amp; weight right from home screen"
+        android:textColor="#737373"
+        android:textSize="10sp" />
 
 </LinearLayout>

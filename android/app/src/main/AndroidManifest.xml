@@ -1,5 +1,4 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android" xmlns:tools="http://schemas.android.com/tools">
-  <uses-sdk tools:overrideLibrary="androidx.health.connect.client" />
   <uses-permission android:name="android.permission.INTERNET"/>
   <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" android:maxSdkVersion="32" tools:replace="android:maxSdkVersion"/>
   <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW"/>
@@ -7,13 +6,6 @@
   <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" android:maxSdkVersion="32" tools:replace="android:maxSdkVersion"/>
   <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>
   <uses-permission android:name="android.permission.FOREGROUND_SERVICE"/>
-  
-  <!-- Health Connect permissions (Fitbit Air / Google Health) -->
-  <uses-permission android:name="android.permission.health.READ_STEPS"/>
-  <uses-permission android:name="android.permission.health.READ_SLEEP"/>
-  <uses-permission android:name="android.permission.health.READ_HEART_RATE"/>
-  <uses-permission android:name="android.permission.health.READ_RESTING_HEART_RATE"/>
-  <uses-permission android:name="android.permission.health.READ_TOTAL_CALORIES_BURNED"/>
 
   <queries>
     <intent>
@@ -21,7 +13,6 @@
       <category android:name="android.intent.category.BROWSABLE"/>
       <data android:scheme="https"/>
     </intent>
-    <package android:name="com.google.android.apps.healthdata" />
   </queries>
 
   <application android:name=".MainApplication" android:label="@string/app_name" android:icon="@mipmap/ic_launcher" android:roundIcon="@mipmap/ic_launcher_round" android:allowBackup="true" android:theme="@style/AppTheme" android:supportsRtl="true" android:enableOnBackInvokedCallback="false">
@@ -35,23 +26,7 @@
         <action android:name="android.intent.action.MAIN"/>
         <category android:name="android.intent.category.LAUNCHER"/>
       </intent-filter>
-      <!-- Health Connect Rationale Intent Filter -->
-      <intent-filter>
-        <action android:name="androidx.health.ACTION_SHOW_PERMISSIONS_RATIONALE" />
-      </intent-filter>
     </activity>
-
-    <!-- Health Connect Permission Usage Activity Alias for Android 14+ -->
-    <activity-alias
-        android:name="ViewPermissionUsageActivity"
-        android:targetActivity=".MainActivity"
-        android:exported="true"
-        android:permission="android.permission.START_VIEW_PERMISSION_USAGE">
-        <intent-filter>
-            <action android:name="android.intent.action.VIEW_PERMISSION_USAGE" />
-            <category android:name="android.intent.category.HEALTH_PERMISSIONS" />
-        </intent-filter>
-    </activity-alias>
 
     <!-- 📲 Android Home Screen Widget: Active Workout -->
     <receiver
@@ -60,23 +35,15 @@
         android:label="Lift: Active Workout">
         <intent-filter>
             <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            <action android:name="com.lift.app.ACTION_WIDGET_INC_WEIGHT" />
+            <action android:name="com.lift.app.ACTION_WIDGET_DEC_WEIGHT" />
+            <action android:name="com.lift.app.ACTION_WIDGET_INC_REPS" />
+            <action android:name="com.lift.app.ACTION_WIDGET_DEC_REPS" />
+            <action android:name="com.lift.app.ACTION_WIDGET_LOG_SET" />
         </intent-filter>
         <meta-data
             android:name="android.appwidget.provider"
             android:resource="@xml/workout_widget_info" />
-    </receiver>
-
-    <!-- ⚡ Android Home Screen Widget: Fitbit / Health Recovery -->
-    <receiver
-        android:name=".HealthWidgetProvider"
-        android:exported="true"
-        android:label="Lift: Readiness &amp; Sleep">
-        <intent-filter>
-            <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
-        </intent-filter>
-        <meta-data
-            android:name="android.appwidget.provider"
-            android:resource="@xml/health_widget_info" />
     </receiver>
 
   </application>

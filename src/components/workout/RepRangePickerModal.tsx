@@ -7,7 +7,8 @@ import {
   TouchableOpacity,
   TextInput,
   TouchableWithoutFeedback,
-  Keyboard
+  Keyboard,
+  Switch
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { THEME } from '../../constants/theme';
@@ -15,32 +16,26 @@ import { triggerHapticSelection, triggerHapticSuccess } from '../../utils/haptic
 
 interface RepRangePickerModalProps {
   visible: boolean;
-  exerciseName: string;
+  exerciseName?: string;
   initialMin: number;
   initialMax: number;
-  onSave: (min: number, max: number) => void;
+  allowWorkoutWideToggle?: boolean;
+  onSave: (min: number, max: number, applyToAll: boolean) => void;
   onClose: () => void;
 }
 
-const PRESETS = [
-  { min: 3, max: 5, label: '3–5 (Strength)' },
-  { min: 6, max: 8, label: '6–8 (Heavy)' },
-  { min: 8, max: 12, label: '8–12 (Hypertrophy)' },
-  { min: 10, max: 15, label: '10–15 (Volume)' },
-  { min: 12, max: 15, label: '12–15 (Endurance)' },
-  { min: 15, max: 20, label: '15–20 (Pump)' },
-];
-
 export const RepRangePickerModal: React.FC<RepRangePickerModalProps> = ({
   visible,
-  exerciseName,
+  exerciseName = 'Workout Target',
   initialMin,
   initialMax,
+  allowWorkoutWideToggle = true,
   onSave,
   onClose,
 }) => {
   const [minReps, setMinReps] = useState<number>(initialMin || 8);
   const [maxReps, setMaxReps] = useState<number>(initialMax || 12);
+  const [applyToAll, setApplyToAll] = useState<boolean>(true);
 
   useEffect(() => {
     if (visible) {
@@ -49,17 +44,11 @@ export const RepRangePickerModal: React.FC<RepRangePickerModalProps> = ({
     }
   }, [visible, initialMin, initialMax]);
 
-  const handleApplyPreset = (min: number, max: number) => {
-    triggerHapticSelection();
-    setMinReps(min);
-    setMaxReps(max);
-  };
-
   const handleSave = () => {
     triggerHapticSuccess();
     const finalMin = Math.max(1, minReps);
     const finalMax = Math.max(finalMin, maxReps);
-    onSave(finalMin, finalMax);
+    onSave(finalMin, finalMax, applyToAll);
     onClose();
   };
 
@@ -70,17 +59,17 @@ export const RepRangePickerModal: React.FC<RepRangePickerModalProps> = ({
           <View style={styles.container}>
             {/* Header */}
             <View style={styles.header}>
-              <View>
+              <View style={{ flex: 1 }}>
                 <Text style={styles.title}>Target Rep Range</Text>
                 <Text style={styles.subtitle} numberOfLines={1}>{exerciseName}</Text>
               </View>
               <TouchableOpacity onPress={onClose} style={styles.closeBtn}>
-                <Ionicons name="close" size={20} color={THEME.colors.textMuted} />
+                <Ionicons name="close" size={22} color={THEME.colors.textMuted} />
               </TouchableOpacity>
             </View>
 
             <Text style={styles.desc}>
-              Hitting the ceiling ({maxReps} reps) triggers a progressive overload prompt to increase weight.
+              When you hit the target ceiling ({maxReps} reps), Lift prompts you to increase weight for progressive overload.
             </Text>
 
             {/* Steppers Row */}
@@ -96,19 +85,21 @@ export const RepRangePickerModal: React.FC<RepRangePickerModalProps> = ({
                       setMinReps(prev => Math.max(1, prev - 1));
                     }}
                   >
-                    <Ionicons name="remove" size={18} color="#FFFFFF" />
+                    <Ionicons name="remove" size={20} color="#FFFFFF" />
                   </TouchableOpacity>
 
-                  <TextInput
-                    style={styles.repInput}
-                    keyboardType="number-pad"
-                    value={String(minReps)}
-                    onChangeText={text => {
-                      const val = parseInt(text.replace(/[^0-9]/g, ''), 10);
-                      setMinReps(isNaN(val) ? 1 : val);
-                    }}
-                    selectTextOnFocus
-                  />
+                  <View style={styles.inputWrapper}>
+                    <TextInput
+                      style={styles.repInput}
+                      keyboardType="number-pad"
+                      value={String(minReps)}
+                      onChangeText={text => {
+                        const val = parseInt(text.replace(/[^0-9]/g, ''), 10);
+                        setMinReps(isNaN(val) ? 1 : val);
+                      }}
+                      selectTextOnFocus
+                    />
+                  </View>
 
                   <TouchableOpacity
                     style={styles.stepBtn}
@@ -121,7 +112,7 @@ export const RepRangePickerModal: React.FC<RepRangePickerModalProps> = ({
                       });
                     }}
                   >
-                    <Ionicons name="add" size={18} color="#FFFFFF" />
+                    <Ionicons name="add" size={20} color="#FFFFFF" />
                   </TouchableOpacity>
                 </View>
               </View>
@@ -139,19 +130,21 @@ export const RepRangePickerModal: React.FC<RepRangePickerModalProps> = ({
                       setMaxReps(prev => Math.max(minReps, prev - 1));
                     }}
                   >
-                    <Ionicons name="remove" size={18} color="#FFFFFF" />
+                    <Ionicons name="remove" size={20} color="#FFFFFF" />
                   </TouchableOpacity>
 
-                  <TextInput
-                    style={styles.repInput}
-                    keyboardType="number-pad"
-                    value={String(maxReps)}
-                    onChangeText={text => {
-                      const val = parseInt(text.replace(/[^0-9]/g, ''), 10);
-                      setMaxReps(isNaN(val) ? minReps : Math.max(minReps, val));
-                    }}
-                    selectTextOnFocus
-                  />
+                  <View style={styles.inputWrapper}>
+                    <TextInput
+                      style={styles.repInput}
+                      keyboardType="number-pad"
+                      value={String(maxReps)}
+                      onChangeText={text => {
+                        const val = parseInt(text.replace(/[^0-9]/g, ''), 10);
+                        setMaxReps(isNaN(val) ? minReps : Math.max(minReps, val));
+                      }}
+                      selectTextOnFocus
+                    />
+                  </View>
 
                   <TouchableOpacity
                     style={styles.stepBtn}
@@ -160,30 +153,30 @@ export const RepRangePickerModal: React.FC<RepRangePickerModalProps> = ({
                       setMaxReps(prev => prev + 1);
                     }}
                   >
-                    <Ionicons name="add" size={18} color="#FFFFFF" />
+                    <Ionicons name="add" size={20} color="#FFFFFF" />
                   </TouchableOpacity>
                 </View>
               </View>
             </View>
 
-            {/* Quick Presets */}
-            <Text style={styles.sectionTitle}>QUICK PRESETS</Text>
-            <View style={styles.presetsGrid}>
-              {PRESETS.map((p, idx) => {
-                const isSelected = minReps === p.min && maxReps === p.max;
-                return (
-                  <TouchableOpacity
-                    key={idx}
-                    style={[styles.presetChip, isSelected && styles.presetChipActive]}
-                    onPress={() => handleApplyPreset(p.min, p.max)}
-                  >
-                    <Text style={[styles.presetText, isSelected && styles.presetTextActive]}>
-                      {p.label}
-                    </Text>
-                  </TouchableOpacity>
-                );
-              })}
-            </View>
+            {/* Workout-Wide Toggle Menu */}
+            {allowWorkoutWideToggle && (
+              <View style={styles.toggleRow}>
+                <View style={{ flex: 1, marginRight: 12 }}>
+                  <Text style={styles.toggleLabel}>Apply to Entire Workout</Text>
+                  <Text style={styles.toggleSub}>Use this rep range across all exercises in this session</Text>
+                </View>
+                <Switch
+                  value={applyToAll}
+                  onValueChange={val => {
+                    triggerHapticSelection();
+                    setApplyToAll(val);
+                  }}
+                  trackColor={{ false: '#262626', true: THEME.colors.primary }}
+                  thumbColor="#FFFFFF"
+                />
+              </View>
+            )}
 
             {/* Action Buttons */}
             <View style={styles.actions}>
@@ -192,7 +185,7 @@ export const RepRangePickerModal: React.FC<RepRangePickerModalProps> = ({
               </TouchableOpacity>
 
               <TouchableOpacity style={styles.saveBtn} onPress={handleSave}>
-                <Text style={styles.saveText}>Save Rep Range ({minReps}–{maxReps})</Text>
+                <Text style={styles.saveText}>Save ({minReps}–{maxReps} Reps)</Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -205,7 +198,7 @@ export const RepRangePickerModal: React.FC<RepRangePickerModalProps> = ({
 const styles = StyleSheet.create({
   overlay: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.82)',
+    backgroundColor: 'rgba(0, 0, 0, 0.85)',
     justifyContent: 'center',
     alignItems: 'center',
     padding: 20,
@@ -213,11 +206,11 @@ const styles = StyleSheet.create({
   container: {
     width: '100%',
     maxWidth: 380,
-    backgroundColor: THEME.colors.surfaceElevated,
+    backgroundColor: '#121212',
     borderRadius: 16,
     padding: 20,
     borderWidth: 1,
-    borderColor: THEME.colors.border,
+    borderColor: '#262626',
   },
   header: {
     flexDirection: 'row',
@@ -228,34 +221,34 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 18,
     fontWeight: '700',
-    color: THEME.colors.textPrimary,
+    color: '#FFFFFF',
   },
   subtitle: {
     fontSize: 13,
     color: THEME.colors.primary,
     fontWeight: '600',
     marginTop: 2,
-    maxWidth: 260,
+    maxWidth: 270,
   },
   closeBtn: {
     padding: 4,
   },
   desc: {
     fontSize: 12,
-    color: THEME.colors.textMuted,
+    color: '#737373',
     lineHeight: 17,
-    marginBottom: 16,
+    marginBottom: 18,
   },
   steppersRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    marginBottom: 20,
-    backgroundColor: THEME.colors.surface,
-    padding: 14,
+    marginBottom: 16,
+    backgroundColor: '#000000',
+    padding: 16,
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: THEME.colors.border,
+    borderColor: '#262626',
   },
   stepperBox: {
     flex: 1,
@@ -264,15 +257,15 @@ const styles = StyleSheet.create({
   stepperLabel: {
     fontSize: 10,
     fontWeight: '700',
-    color: THEME.colors.textMuted,
+    color: '#737373',
     marginBottom: 8,
     letterSpacing: 0.5,
   },
   dash: {
-    fontSize: 22,
-    color: THEME.colors.textMuted,
-    marginHorizontal: 8,
-    marginTop: 14,
+    fontSize: 24,
+    color: '#737373',
+    marginHorizontal: 4,
+    marginTop: 12,
     fontWeight: '300',
   },
   controlRow: {
@@ -283,52 +276,47 @@ const styles = StyleSheet.create({
     width: 36,
     height: 36,
     borderRadius: 8,
-    backgroundColor: THEME.colors.surfaceHighlight,
+    backgroundColor: '#1C1C1C',
     justifyContent: 'center',
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: THEME.colors.border,
+    borderColor: '#262626',
+  },
+  inputWrapper: {
+    minWidth: 54,
+    height: 38,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   repInput: {
-    width: 48,
-    height: 36,
+    width: '100%',
     color: '#FFFFFF',
-    fontSize: 18,
+    fontSize: 24,
     fontWeight: '700',
     textAlign: 'center',
+    paddingHorizontal: 0,
+    paddingVertical: 0,
   },
-  sectionTitle: {
-    fontSize: 11,
-    fontWeight: '700',
-    color: THEME.colors.textMuted,
-    marginBottom: 10,
-    letterSpacing: 0.5,
-  },
-  presetsGrid: {
+  toggleRow: {
     flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 8,
-    marginBottom: 24,
-  },
-  presetChip: {
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 8,
-    backgroundColor: THEME.colors.surface,
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: '#000000',
+    padding: 14,
+    borderRadius: 12,
     borderWidth: 1,
-    borderColor: THEME.colors.border,
+    borderColor: '#262626',
+    marginBottom: 20,
   },
-  presetChipActive: {
-    backgroundColor: `${THEME.colors.primary}20`,
-    borderColor: THEME.colors.primary,
-  },
-  presetText: {
-    fontSize: 12,
-    color: THEME.colors.textMuted,
+  toggleLabel: {
+    fontSize: 13,
     fontWeight: '600',
+    color: '#FFFFFF',
   },
-  presetTextActive: {
-    color: THEME.colors.primary,
+  toggleSub: {
+    fontSize: 11,
+    color: '#737373',
+    marginTop: 2,
   },
   actions: {
     flexDirection: 'row',
@@ -338,15 +326,15 @@ const styles = StyleSheet.create({
     flex: 1,
     paddingVertical: 12,
     borderRadius: 10,
-    backgroundColor: THEME.colors.surface,
+    backgroundColor: '#000000',
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: THEME.colors.border,
+    borderColor: '#262626',
   },
   cancelText: {
     fontSize: 14,
     fontWeight: '600',
-    color: THEME.colors.textMuted,
+    color: '#A8A8A8',
   },
   saveBtn: {
     flex: 2,

@@ -12,7 +12,6 @@ const DEFAULT_SETTINGS: UserSettings = {
   hapticsEnabled: true,
   autoRestTimer: true,
   notificationBarEnabled: true,
-  healthConnectSyncEnabled: true,
   rpeScale: 'RPE'
 };
 

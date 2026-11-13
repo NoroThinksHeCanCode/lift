@@ -18,6 +18,7 @@ import { SetRow } from './SetRow';
 import { RestTimerBanner } from './RestTimerModal';
 import { RestTimerPickerModal } from './RestTimerPickerModal';
 import { RepRangePickerModal } from './RepRangePickerModal';
+import { ExerciseNoteModal } from './ExerciseNoteModal';
 import { ProgressiveOverloadModal } from './ProgressiveOverloadModal';
 import { MachineSelectorModal } from '../exercises/MachineSelectorModal';
 import { ExerciseSelectorModal } from '../exercises/ExerciseSelectorModal';
@@ -37,8 +38,14 @@ export const ActiveWorkoutModal: React.FC = () => {
     addExerciseToWorkout,
     removeExerciseFromWorkout,
     setExerciseMachine,
-    setExerciseCustomRest,
     setExerciseTargetRepRange,
+    setExerciseNotes,
+    workoutRestSeconds,
+    setWorkoutRestSeconds,
+    workoutRepRange,
+    isWorkoutRepRangeLocked,
+    setWorkoutRepRange,
+    toggleWorkoutRepRange,
     applyOverloadIncrease,
     addSet,
     removeSet,
@@ -57,7 +64,6 @@ export const ActiveWorkoutModal: React.FC = () => {
   const [showExerciseSelector, setShowExerciseSelector] = useState(false);
   const [showPlateCalculator, setShowPlateCalculator] = useState(false);
   const [show1RMCalculator, setShow1RMCalculator] = useState(false);
-  const [notes, setNotes] = useState('');
 
   // Machine selector modal state
   const [machineModalTarget, setMachineModalTarget] = useState<{
@@ -67,19 +73,22 @@ export const ActiveWorkoutModal: React.FC = () => {
     machines: MachineVariant[];
   } | null>(null);
 
-  // Custom rest timer picker modal state
-  const [restPickerTarget, setRestPickerTarget] = useState<{
+  // Workout-wide rest timer picker modal state
+  const [showRestPicker, setShowRestPicker] = useState(false);
+
+  // Target rep range picker modal state
+  const [repRangeTarget, setRepRangeTarget] = useState<{
     exerciseId?: string;
     exerciseName?: string;
-    duration: number;
-  } | null>(null);
-
-  // Target rep range picker modal state (Feature 1)
-  const [repRangeTarget, setRepRangeTarget] = useState<{
-    exerciseId: string;
-    exerciseName: string;
     min: number;
     max: number;
+  } | null>(null);
+
+  // Exercise note modal state
+  const [exerciseNoteTarget, setExerciseNoteTarget] = useState<{
+    exerciseId: string;
+    exerciseName: string;
+    note: string;
   } | null>(null);
 
   if (!activeWorkout) return null;
@@ -99,8 +108,8 @@ export const ActiveWorkoutModal: React.FC = () => {
               targetSets: ex.sets.length,
               machineId: ex.selectedMachine?.id
             }));
-            await saveTemplate(workoutName, 'Saved from workout', templateExercises);
-            await finishWorkout(notes);
+            await saveTemplate(workoutName, 'Saved routine', templateExercises);
+            await finishWorkout();
             triggerHapticSuccess();
           }
         },
@@ -108,7 +117,7 @@ export const ActiveWorkoutModal: React.FC = () => {
           text: 'Finish Workout',
           style: 'default',
           onPress: async () => {
-            await finishWorkout(notes);
+            await finishWorkout();
             triggerHapticSuccess();
           }
         }
@@ -149,13 +158,13 @@ export const ActiveWorkoutModal: React.FC = () => {
               setIsWorkoutModalVisible(false);
             }}
           >
-            <Ionicons name="chevron-down" size={24} color={THEME.colors.textPrimary} />
+            <Ionicons name="chevron-down" size={24} color="#FFFFFF" />
           </TouchableOpacity>
 
           {/* Minimalist Live Timer */}
           <TouchableOpacity
             activeOpacity={0.8}
-            onPress={() => setRestPickerTarget({ duration: settings.defaultRestSeconds })}
+            onPress={() => setShowRestPicker(true)}
             style={styles.timerCenter}
           >
             <View style={styles.timerDot} />
@@ -190,6 +199,41 @@ export const ActiveWorkoutModal: React.FC = () => {
           </View>
         </View>
 
+        {/* Workout-Wide Settings Toolbar (Rest & Rep Range) */}
+        <View style={styles.workoutToolbar}>
+          {/* Workout Rest Timer setting */}
+          <TouchableOpacity
+            style={styles.toolbarPill}
+            onPress={() => {
+              triggerHapticSelection();
+              setShowRestPicker(true);
+            }}
+          >
+            <Ionicons name="timer-outline" size={13} color={THEME.colors.cyan} />
+            <Text style={styles.toolbarPillText}>Rest: {workoutRestSeconds}s</Text>
+            <Ionicons name="chevron-down" size={10} color={THEME.colors.cyan} />
+          </TouchableOpacity>
+
+          {/* Workout Rep Range toggle menu */}
+          <TouchableOpacity
+            style={[styles.toolbarPill, isWorkoutRepRangeLocked && styles.toolbarPillActive]}
+            onPress={() => {
+              triggerHapticSelection();
+              setRepRangeTarget({
+                exerciseName: 'Entire Workout Rep Range',
+                min: workoutRepRange.min,
+                max: workoutRepRange.max
+              });
+            }}
+          >
+            <Ionicons name="flag-outline" size={13} color={THEME.colors.primary} />
+            <Text style={[styles.toolbarPillText, isWorkoutRepRangeLocked && { color: THEME.colors.primary }]}>
+              Target: {workoutRepRange.min}–{workoutRepRange.max} reps
+            </Text>
+            <Ionicons name="chevron-down" size={10} color={THEME.colors.primary} />
+          </TouchableOpacity>
+        </View>
+
         <ScrollView contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled">
           {/* Title */}
           <TextInput
@@ -197,12 +241,12 @@ export const ActiveWorkoutModal: React.FC = () => {
             value={workoutName}
             onChangeText={setWorkoutName}
             placeholder="Workout Title..."
-            placeholderTextColor={THEME.colors.textMuted}
+            placeholderTextColor="#737373"
           />
 
           {/* Exercises */}
           {activeExercises.map((exSession) => {
-            const { exercise, sets, previousSets, selectedMachine, customRestSeconds } = exSession;
+            const { exercise, sets, previousSets, selectedMachine, notes: exNotes } = exSession;
             return (
               <View key={exercise.id} style={styles.exerciseCard}>
                 {/* Exercise Header */}
@@ -213,7 +257,15 @@ export const ActiveWorkoutModal: React.FC = () => {
                     <View style={styles.subMetaRow}>
                       <Badge label={exercise.muscle_group} variant="primary" size="sm" />
 
-                      {/* Machine selector pill (Feature 4) */}
+                      {/* Joint Action Tag (Anatomical Classification) */}
+                      {exercise.joint_action ? (
+                        <View style={styles.jointActionBadge}>
+                          <Ionicons name="body-outline" size={10} color="#06B6D4" />
+                          <Text style={styles.jointActionText}>{exercise.joint_action}</Text>
+                        </View>
+                      ) : null}
+
+                      {/* Machine selector pill */}
                       {(exercise.equipment === 'Machine' || exercise.equipment === 'Cable' || (exercise.machines && exercise.machines.length > 0)) && (
                         <TouchableOpacity
                           style={styles.machinePill}
@@ -235,7 +287,7 @@ export const ActiveWorkoutModal: React.FC = () => {
                         </TouchableOpacity>
                       )}
 
-                      {/* Target Rep Range Pill (Feature 1: Progressive Overload) */}
+                      {/* Target Rep Range Pill */}
                       <TouchableOpacity
                         style={styles.repRangePill}
                         onPress={() => {
@@ -254,24 +306,44 @@ export const ActiveWorkoutModal: React.FC = () => {
                         </Text>
                       </TouchableOpacity>
 
-                      {/* Custom Rest Timer button for this exercise (Feature 3) */}
+                      {/* Exercise Note Button */}
                       <TouchableOpacity
-                        style={styles.restPill}
+                        style={[styles.noteBtn, exNotes ? styles.noteBtnActive : null]}
                         onPress={() => {
                           triggerHapticSelection();
-                          setRestPickerTarget({
+                          setExerciseNoteTarget({
                             exerciseId: exercise.id,
                             exerciseName: exercise.name,
-                            duration: customRestSeconds || settings.defaultRestSeconds
+                            note: exNotes || ''
                           });
                         }}
                       >
-                        <Ionicons name="timer-outline" size={11} color={THEME.colors.textMuted} />
-                        <Text style={styles.restPillText}>
-                          {customRestSeconds ? `${customRestSeconds}s rest` : `${settings.defaultRestSeconds}s`}
+                        <Ionicons name="document-text-outline" size={11} color={exNotes ? THEME.colors.primary : '#737373'} />
+                        <Text style={[styles.noteBtnText, exNotes ? { color: THEME.colors.primary } : null]}>
+                          {exNotes ? 'Note' : '+ Note'}
                         </Text>
                       </TouchableOpacity>
                     </View>
+
+                    {/* Exercise Note Preview Card */}
+                    {exNotes ? (
+                      <TouchableOpacity
+                        style={styles.exerciseNotePreview}
+                        onPress={() => {
+                          triggerHapticSelection();
+                          setExerciseNoteTarget({
+                            exerciseId: exercise.id,
+                            exerciseName: exercise.name,
+                            note: exNotes
+                          });
+                        }}
+                      >
+                        <Ionicons name="create-outline" size={12} color="#737373" />
+                        <Text style={styles.exerciseNotePreviewText} numberOfLines={2}>
+                          {exNotes}
+                        </Text>
+                      </TouchableOpacity>
+                    ) : null}
 
                     {/* Saved seat setting reminder */}
                     {selectedMachine?.seat_setting ? (
@@ -299,7 +371,7 @@ export const ActiveWorkoutModal: React.FC = () => {
                     }}
                     style={{ padding: 4 }}
                   >
-                    <Ionicons name="ellipsis-horizontal" size={18} color={THEME.colors.textMuted} />
+                    <Ionicons name="ellipsis-horizontal" size={18} color="#737373" />
                   </TouchableOpacity>
                 </View>
 
@@ -357,20 +429,6 @@ export const ActiveWorkoutModal: React.FC = () => {
             <Text style={styles.addExerciseText}>Add Exercise</Text>
           </TouchableOpacity>
 
-          {/* Workout Notes */}
-          <View style={styles.notesCard}>
-            <Text style={styles.notesLabel}>SESSION NOTES</Text>
-            <TextInput
-              style={styles.notesInput}
-              placeholder="Felt strong, pre-workout, warm-up notes..."
-              placeholderTextColor={THEME.colors.textMuted}
-              value={notes}
-              onChangeText={setNotes}
-              multiline
-              numberOfLines={2}
-            />
-          </View>
-
           {/* Discard */}
           <TouchableOpacity style={styles.discardBtn} onPress={handleDiscard}>
             <Ionicons name="trash-outline" size={14} color={THEME.colors.danger} />
@@ -381,7 +439,7 @@ export const ActiveWorkoutModal: React.FC = () => {
         {/* Docked Rest Timer */}
         <RestTimerBanner />
 
-        {/* Machine Selector Modal (Feature 4) */}
+        {/* Machine Selector Modal */}
         {machineModalTarget && (
           <MachineSelectorModal
             visible={true}
@@ -399,37 +457,53 @@ export const ActiveWorkoutModal: React.FC = () => {
           />
         )}
 
-        {/* Custom Rest Timer Picker Modal (Feature 3) */}
-        {restPickerTarget && (
+        {/* Workout-Wide Rest Timer Picker Modal */}
+        {showRestPicker && (
           <RestTimerPickerModal
             visible={true}
-            exerciseName={restPickerTarget.exerciseName}
-            currentDurationSeconds={restPickerTarget.duration}
-            onClose={() => setRestPickerTarget(null)}
-            onSelectDuration={(secs, saveAsDefault) => {
-              if (restPickerTarget.exerciseId && saveAsDefault) {
-                setExerciseCustomRest(restPickerTarget.exerciseId, secs);
-              }
+            exerciseName="Workout Rest Timer"
+            currentDurationSeconds={workoutRestSeconds}
+            onClose={() => setShowRestPicker(false)}
+            onSelectDuration={(secs) => {
+              setWorkoutRestSeconds(secs);
               startRestTimer(secs);
             }}
           />
         )}
 
-        {/* Target Rep Range Picker Modal (Feature 1: Progressive Overload) */}
+        {/* Target Rep Range Picker Modal */}
         {repRangeTarget && (
           <RepRangePickerModal
             visible={true}
             exerciseName={repRangeTarget.exerciseName}
             initialMin={repRangeTarget.min}
             initialMax={repRangeTarget.max}
+            allowWorkoutWideToggle={true}
             onClose={() => setRepRangeTarget(null)}
-            onSave={(min, max) => {
-              setExerciseTargetRepRange(repRangeTarget.exerciseId, min, max);
+            onSave={(min, max, applyToAll) => {
+              if (repRangeTarget.exerciseId) {
+                setExerciseTargetRepRange(repRangeTarget.exerciseId, min, max, applyToAll);
+              } else {
+                setWorkoutRepRange(min, max, applyToAll);
+              }
             }}
           />
         )}
 
-        {/* Progressive Overload Prompt Modal (Feature 1) */}
+        {/* Exercise Note Modal */}
+        {exerciseNoteTarget && (
+          <ExerciseNoteModal
+            visible={true}
+            exerciseName={exerciseNoteTarget.exerciseName}
+            initialNote={exerciseNoteTarget.note}
+            onClose={() => setExerciseNoteTarget(null)}
+            onSave={(savedNote) => {
+              setExerciseNotes(exerciseNoteTarget.exerciseId, savedNote);
+            }}
+          />
+        )}
+
+        {/* Progressive Overload Prompt Modal */}
         <ProgressiveOverloadModal
           prompt={currentOverloadPrompt}
           onDismiss={dismissOverloadPrompt}
@@ -466,7 +540,7 @@ export const ActiveWorkoutModal: React.FC = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: THEME.colors.bg
+    backgroundColor: '#000000'
   },
   header: {
     flexDirection: 'row',
@@ -476,33 +550,34 @@ const styles = StyleSheet.create({
     paddingTop: 52,
     paddingBottom: 12,
     borderBottomWidth: 1,
-    borderColor: THEME.colors.border,
-    backgroundColor: THEME.colors.surface
+    borderColor: '#262626',
+    backgroundColor: '#000000'
   },
   headerIconBtn: {
-    padding: 6
+    padding: 6,
+    marginRight: 4
   },
   timerCenter: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: THEME.colors.surfaceElevated,
+    backgroundColor: '#121212',
     paddingHorizontal: 12,
     paddingVertical: 5,
-    borderRadius: THEME.borderRadius.full,
+    borderRadius: 20,
     borderWidth: 1,
-    borderColor: THEME.colors.border,
-    gap: 6
+    borderColor: '#262626'
   },
   timerDot: {
     width: 6,
     height: 6,
     borderRadius: 3,
-    backgroundColor: THEME.colors.primary
+    backgroundColor: THEME.colors.primary,
+    marginRight: 6
   },
   timerText: {
-    color: THEME.colors.textPrimary,
-    fontSize: 13,
-    fontWeight: '800',
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#FFFFFF',
     fontVariant: ['tabular-nums']
   },
   headerRightRow: {
@@ -511,9 +586,14 @@ const styles = StyleSheet.create({
     gap: 8
   },
   toolIconBtn: {
-    padding: 7,
+    width: 32,
+    height: 32,
     borderRadius: 8,
-    backgroundColor: THEME.colors.surfaceHighlight
+    backgroundColor: '#121212',
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#262626'
   },
   finishBtn: {
     backgroundColor: THEME.colors.primary,
@@ -522,27 +602,57 @@ const styles = StyleSheet.create({
     borderRadius: 8
   },
   finishBtnText: {
-    color: '#08090B',
-    fontWeight: '800',
+    color: '#000000',
+    fontWeight: '700',
     fontSize: 13
+  },
+  workoutToolbar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    backgroundColor: '#000000',
+    borderBottomWidth: 1,
+    borderColor: '#1C1C1C'
+  },
+  toolbarPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    backgroundColor: '#121212',
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#262626'
+  },
+  toolbarPillActive: {
+    borderColor: `${THEME.colors.primary}50`
+  },
+  toolbarPillText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#A8A8A8'
   },
   scrollContent: {
     padding: 16,
-    paddingBottom: 40,
-    gap: 16
+    paddingBottom: 110
   },
   titleInput: {
     fontSize: 22,
     fontWeight: '800',
-    color: THEME.colors.textPrimary,
-    marginBottom: 2
+    color: '#FFFFFF',
+    paddingVertical: 4,
+    marginBottom: 16
   },
   exerciseCard: {
-    backgroundColor: THEME.colors.surface,
-    borderRadius: THEME.borderRadius.lg,
+    backgroundColor: '#000000',
+    borderRadius: 14,
     padding: 14,
+    marginBottom: 16,
     borderWidth: 1,
-    borderColor: THEME.colors.border
+    borderColor: '#262626'
   },
   exHeader: {
     flexDirection: 'row',
@@ -552,12 +662,13 @@ const styles = StyleSheet.create({
   },
   exHeaderLeft: {
     flex: 1,
-    gap: 6
+    marginRight: 8
   },
   exName: {
-    fontSize: 15,
-    fontWeight: '800',
-    color: THEME.colors.textPrimary
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#FFFFFF',
+    marginBottom: 6
   },
   subMetaRow: {
     flexDirection: 'row',
@@ -565,131 +676,156 @@ const styles = StyleSheet.create({
     flexWrap: 'wrap',
     gap: 6
   },
-  repRangePill: {
+  jointActionBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: THEME.colors.primaryGlow,
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: 4,
-    gap: 4,
+    gap: 3,
+    backgroundColor: 'rgba(6, 182, 212, 0.1)',
+    paddingHorizontal: 7,
+    paddingVertical: 2,
+    borderRadius: 6,
     borderWidth: 1,
-    borderColor: THEME.colors.primary
+    borderColor: 'rgba(6, 182, 212, 0.25)'
   },
-  repRangePillText: {
-    fontSize: 11,
-    color: THEME.colors.primary,
-    fontWeight: '700'
+  jointActionText: {
+    fontSize: 10,
+    fontWeight: '700',
+    color: '#06B6D4'
   },
   machinePill: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(6, 182, 212, 0.12)',
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: 4,
     gap: 4,
+    backgroundColor: '#121212',
+    paddingHorizontal: 7,
+    paddingVertical: 3,
+    borderRadius: 6,
     borderWidth: 1,
-    borderColor: 'rgba(6, 182, 212, 0.3)'
+    borderColor: '#262626'
   },
   machinePillText: {
-    fontSize: 11,
-    color: THEME.colors.cyan,
-    fontWeight: '700',
-    maxWidth: 140
+    fontSize: 10,
+    fontWeight: '600',
+    color: '#06B6D4',
+    maxWidth: 130
   },
-  restPill: {
+  repRangePill: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: THEME.colors.surfaceHighlight,
-    paddingHorizontal: 8,
+    gap: 4,
+    backgroundColor: `${THEME.colors.primary}15`,
+    paddingHorizontal: 7,
     paddingVertical: 3,
-    borderRadius: 4,
-    gap: 4
+    borderRadius: 6,
+    borderWidth: 1,
+    borderColor: `${THEME.colors.primary}40`
   },
-  restPillText: {
+  repRangePillText: {
+    fontSize: 10,
+    fontWeight: '700',
+    color: THEME.colors.primary
+  },
+  noteBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 3,
+    backgroundColor: '#121212',
+    paddingHorizontal: 7,
+    paddingVertical: 3,
+    borderRadius: 6,
+    borderWidth: 1,
+    borderColor: '#262626'
+  },
+  noteBtnActive: {
+    backgroundColor: `${THEME.colors.primary}15`,
+    borderColor: `${THEME.colors.primary}40`
+  },
+  noteBtnText: {
+    fontSize: 10,
+    fontWeight: '600',
+    color: '#737373'
+  },
+  exerciseNotePreview: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 6,
+    backgroundColor: '#121212',
+    padding: 8,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#262626',
+    marginTop: 8
+  },
+  exerciseNotePreviewText: {
     fontSize: 11,
-    color: THEME.colors.textMuted,
-    fontWeight: '600'
+    color: '#A8A8A8',
+    flex: 1,
+    lineHeight: 15
   },
   seatSettingNotice: {
-    fontSize: 11,
-    color: THEME.colors.primary,
-    fontWeight: '600'
+    fontSize: 10,
+    color: '#737373',
+    marginTop: 4,
+    fontStyle: 'italic'
   },
   tableHead: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 6,
-    marginBottom: 6
+    paddingVertical: 6,
+    borderBottomWidth: 1,
+    borderColor: '#1C1C1C',
+    marginBottom: 4
   },
   thText: {
     fontSize: 10,
-    fontWeight: '800',
-    color: THEME.colors.textMuted,
+    fontWeight: '700',
+    color: '#737373',
     letterSpacing: 0.5
   },
   addSetBtn: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: THEME.colors.surfaceHighlight,
-    paddingVertical: 8,
+    gap: 4,
+    paddingVertical: 9,
     borderRadius: 8,
-    marginTop: 6
+    backgroundColor: '#121212',
+    marginTop: 8,
+    borderWidth: 1,
+    borderColor: '#262626'
   },
   addSetText: {
-    color: THEME.colors.primary,
-    fontWeight: '700',
     fontSize: 12,
-    marginLeft: 6
+    fontWeight: '600',
+    color: THEME.colors.primary
   },
   addExerciseBtn: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: THEME.colors.surface,
-    paddingVertical: 12,
-    borderRadius: THEME.borderRadius.md,
+    gap: 6,
+    backgroundColor: '#121212',
+    paddingVertical: 14,
+    borderRadius: 12,
     borderWidth: 1,
-    borderColor: THEME.colors.border
+    borderColor: '#262626',
+    marginBottom: 20
   },
   addExerciseText: {
-    color: THEME.colors.primary,
-    fontWeight: '700',
     fontSize: 14,
-    marginLeft: 6
-  },
-  notesCard: {
-    backgroundColor: THEME.colors.surface,
-    padding: 14,
-    borderRadius: THEME.borderRadius.md,
-    borderWidth: 1,
-    borderColor: THEME.colors.border
-  },
-  notesLabel: {
-    fontSize: 10,
-    fontWeight: '800',
-    color: THEME.colors.textMuted,
-    letterSpacing: 0.8,
-    marginBottom: 4
-  },
-  notesInput: {
-    color: THEME.colors.textPrimary,
-    fontSize: 13,
-    minHeight: 40,
-    textAlignVertical: 'top'
+    fontWeight: '700',
+    color: THEME.colors.primary
   },
   discardBtn: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 12
+    gap: 6,
+    paddingVertical: 10
   },
   discardText: {
-    color: THEME.colors.danger,
-    fontWeight: '600',
     fontSize: 12,
-    marginLeft: 6
+    fontWeight: '600',
+    color: THEME.colors.danger
   }
 });

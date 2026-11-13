@@ -20,6 +20,26 @@ export type Equipment =
   | 'Smith Machine'
   | 'Other';
 
+export type JointAction =
+  | 'Horizontal Adduction'
+  | 'Horizontal Abduction'
+  | 'Shoulder Flexion'
+  | 'Shoulder Extension'
+  | 'Shoulder Abduction'
+  | 'Shoulder Adduction'
+  | 'Elbow Flexion'
+  | 'Elbow Extension'
+  | 'Hip Extension'
+  | 'Hip Flexion'
+  | 'Hip Hinge'
+  | 'Knee Extension'
+  | 'Knee Flexion'
+  | 'Plantarflexion'
+  | 'Spinal Flexion'
+  | 'Spinal Extension'
+  | 'Compound Movement'
+  | 'Other';
+
 export interface MachineVariant {
   id: string;
   exercise_id: string;
@@ -37,6 +57,7 @@ export interface Exercise {
   muscle_group: MuscleGroup;
   equipment: Equipment;
   is_custom: number;
+  joint_action?: JointAction | string;
   notes?: string;
   machines?: MachineVariant[];
   default_reps_min?: number;
@@ -66,7 +87,7 @@ export interface WorkoutSet {
 export interface ActiveExerciseSession {
   exercise: Exercise;
   selectedMachine?: MachineVariant;
-  customRestSeconds?: number;
+  notes?: string; // Exercise-level note for this exercise (e.g. "Seat pin 4, slow eccentric")
   targetRepsMin: number; // e.g. 8
   targetRepsMax: number; // e.g. 12
   sets: WorkoutSet[];
@@ -120,17 +141,6 @@ export interface OverloadPrompt {
   unit: 'lbs' | 'kg';
 }
 
-export interface HealthMetrics {
-  date: string; // YYYY-MM-DD
-  sleepHours: number;
-  sleepScore?: number;
-  readinessScore: number;
-  steps: number;
-  restingHeartRate?: number;
-  hrvMs?: number;
-  lastSyncedAt: number;
-}
-
 export interface UserSettings {
   unit: 'lbs' | 'kg';
   defaultRestSeconds: number;
@@ -139,7 +149,6 @@ export interface UserSettings {
   hapticsEnabled: boolean;
   autoRestTimer: boolean;
   notificationBarEnabled: boolean;
-  healthConnectSyncEnabled: boolean;
   rpeScale: 'RPE' | 'RIR'; // 'RPE' (1-10) or 'RIR' (0-4)
 }
 

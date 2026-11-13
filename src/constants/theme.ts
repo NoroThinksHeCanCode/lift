@@ -1,29 +1,29 @@
 export const THEME = {
   colors: {
-    // Ultra-minimalist dark palette
-    bg: '#08090B',
-    surface: '#111215',
-    surfaceElevated: '#17191E',
-    surfaceHighlight: '#20232B',
-    border: '#1F2228',
-    borderSubtle: '#17191E',
+    // Pure AMOLED Pitch Black (Instagram Android Dark Mode style)
+    bg: '#000000',
+    surface: '#000000',
+    surfaceElevated: '#121212',
+    surfaceHighlight: '#1A1A1A',
+    border: '#262626',
+    borderSubtle: '#1C1C1C',
 
-    // Restrained, clean accents
-    primary: '#10B981',       // Clean Mint/Emerald
+    // Clean accents
+    primary: '#10B981',       // Clean Emerald/Mint
     primaryMuted: '#064E3B',
-    primaryGlow: 'rgba(16, 185, 129, 0.12)',
+    primaryGlow: 'rgba(16, 185, 129, 0.15)',
 
     accent: '#6366F1',        // Indigo
-    cyan: '#06B6D4',          // Rest timer
+    cyan: '#06B6D4',          // Rest timer cyan
     gold: '#F59E0B',          // Personal Record (PR) Trophy
     goldGlow: 'rgba(245, 158, 11, 0.15)',
     danger: '#EF4444',        // Destructive
 
-    // Clean typography & contrast
-    textPrimary: '#F3F4F6',
-    textSecondary: '#9CA3AF',
-    textMuted: '#6B7280',
-    textInverse: '#08090B',
+    // Crisp Instagram Dark Mode Typography
+    textPrimary: '#FFFFFF',
+    textSecondary: '#A8A8A8',
+    textMuted: '#737373',
+    textInverse: '#000000',
 
     // Olympic Plate Standards
     plateColors: {

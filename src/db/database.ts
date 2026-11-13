@@ -7,8 +7,7 @@ import {
   MuscleGroup,
   Equipment,
   SetType,
-  MachineVariant,
-  HealthMetrics
+  MachineVariant
 } from '../types';
 import { PRESET_EXERCISES } from '../constants/presetExercises';
 
@@ -34,6 +33,7 @@ export async function initDatabase(): Promise<void> {
       muscle_group TEXT NOT NULL,
       equipment TEXT NOT NULL,
       is_custom INTEGER DEFAULT 0,
+      joint_action TEXT,
       notes TEXT
     );
 
@@ -96,46 +96,38 @@ export async function initDatabase(): Promise<void> {
       FOREIGN KEY (workout_id) REFERENCES workouts(id) ON DELETE CASCADE,
       FOREIGN KEY (exercise_id) REFERENCES exercises(id)
     );
-
-    CREATE TABLE IF NOT EXISTS health_metrics (
-      date TEXT PRIMARY KEY, -- YYYY-MM-DD
-      sleep_hours REAL NOT NULL,
-      sleep_score INTEGER,
-      readiness_score INTEGER NOT NULL,
-      steps INTEGER NOT NULL,
-      resting_heart_rate INTEGER,
-      hrv_ms INTEGER,
-      last_synced_at INTEGER NOT NULL
-    );
   `);
+
+  try {
+    await db.execAsync('ALTER TABLE exercises ADD COLUMN joint_action TEXT;');
+  } catch (_) {}
 
   // Seed exercises if empty
   const exCount = await db.getFirstAsync<{ count: number }>('SELECT COUNT(*) as count FROM exercises');
   if (!exCount || exCount.count === 0) {
     for (const ex of PRESET_EXERCISES) {
       await db.runAsync(
-        'INSERT OR IGNORE INTO exercises (id, name, muscle_group, equipment, is_custom, notes) VALUES (?, ?, ?, ?, 0, ?)',
-        ex.id, ex.name, ex.muscle_group, ex.equipment, ''
+        'INSERT OR IGNORE INTO exercises (id, name, muscle_group, equipment, is_custom, joint_action, notes) VALUES (?, ?, ?, ?, 0, ?, ?)',
+        ex.id, ex.name, ex.muscle_group, ex.equipment, ex.joint_action || '', ''
       );
     }
     await seedDefaultMachines(db);
+  } else {
+    // Update joint actions for presets if missing
+    for (const ex of PRESET_EXERCISES) {
+      if (ex.joint_action) {
+        await db.runAsync(
+          'UPDATE exercises SET joint_action = ? WHERE id = ? AND (joint_action IS NULL OR joint_action = "")',
+          ex.joint_action, ex.id
+        );
+      }
+    }
   }
 
   // Seed templates if empty
   const tempCount = await db.getFirstAsync<{ count: number }>('SELECT COUNT(*) as count FROM templates');
   if (!tempCount || tempCount.count === 0) {
     await seedDefaultTemplates(db);
-  }
-
-  // Seed initial health metric sample (Fitbit / Google Health Connect)
-  const healthCount = await db.getFirstAsync<{ count: number }>('SELECT COUNT(*) as count FROM health_metrics');
-  if (!healthCount || healthCount.count === 0) {
-    const today = new Date().toISOString().split('T')[0];
-    await db.runAsync(
-      `INSERT INTO health_metrics (date, sleep_hours, sleep_score, readiness_score, steps, resting_heart_rate, hrv_ms, last_synced_at)
-       VALUES (?, 7.8, 86, 88, 8420, 52, 68, ?)`,
-      today, Date.now()
-    );
   }
 }
 
@@ -248,13 +240,14 @@ export async function createCustomExercise(
   name: string,
   muscleGroup: MuscleGroup,
   equipment: Equipment,
+  jointAction?: string,
   notes?: string
 ): Promise<Exercise> {
   const db = await getDB();
   const id = `custom_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
   await db.runAsync(
-    'INSERT INTO exercises (id, name, muscle_group, equipment, is_custom, notes) VALUES (?, ?, ?, ?, 1, ?)',
-    id, name.trim(), muscleGroup, equipment, notes?.trim() || ''
+    'INSERT INTO exercises (id, name, muscle_group, equipment, is_custom, joint_action, notes) VALUES (?, ?, ?, ?, 1, ?, ?)',
+    id, name.trim(), muscleGroup, equipment, jointAction?.trim() || '', notes?.trim() || ''
   );
   return {
     id,
@@ -262,9 +255,15 @@ export async function createCustomExercise(
     muscle_group: muscleGroup,
     equipment,
     is_custom: 1,
+    joint_action: jointAction?.trim() || '',
     notes: notes?.trim(),
     machines: []
   };
+}
+
+export async function updateExerciseNotes(exerciseId: string, notes: string): Promise<void> {
+  const db = await getDB();
+  await db.runAsync('UPDATE exercises SET notes = ? WHERE id = ?', notes.trim(), exerciseId);
 }
 
 // ==================== PR CALCULATION ====================
@@ -555,44 +554,6 @@ export async function deleteTemplate(id: string): Promise<void> {
     await txn.runAsync('DELETE FROM template_exercises WHERE template_id = ?', id);
     await txn.runAsync('DELETE FROM templates WHERE id = ?', id);
   });
-}
-
-// ==================== HEALTH METRICS (GOOGLE HEALTH / FITBIT) ====================
-
-export async function getLatestHealthMetrics(): Promise<HealthMetrics | null> {
-  const db = await getDB();
-  const row = await db.getFirstAsync<{
-    date: string;
-    sleep_hours: number;
-    sleep_score?: number;
-    readiness_score: number;
-    steps: number;
-    resting_heart_rate?: number;
-    hrv_ms?: number;
-    last_synced_at: number;
-  }>('SELECT * FROM health_metrics ORDER BY date DESC LIMIT 1');
-
-  if (!row) return null;
-  return {
-    date: row.date,
-    sleepHours: row.sleep_hours,
-    sleepScore: row.sleep_score,
-    readinessScore: row.readiness_score,
-    steps: row.steps,
-    restingHeartRate: row.resting_heart_rate,
-    hrvMs: row.hrv_ms,
-    lastSyncedAt: row.last_synced_at
-  };
-}
-
-export async function saveHealthMetrics(m: HealthMetrics): Promise<void> {
-  const db = await getDB();
-  await db.runAsync(
-    `INSERT OR REPLACE INTO health_metrics (
-      date, sleep_hours, sleep_score, readiness_score, steps, resting_heart_rate, hrv_ms, last_synced_at
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
-    m.date, m.sleepHours, m.sleepScore || null, m.readinessScore, m.steps, m.restingHeartRate || null, m.hrvMs || null, m.lastSyncedAt
-  );
 }
 
 // ==================== ANALYTICS & CHARTS ====================

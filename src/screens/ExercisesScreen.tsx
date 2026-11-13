@@ -65,8 +65,11 @@ export const ExercisesScreen: React.FC = () => {
 
   const filtered = exercises.filter(ex => {
     const matchesGroup = selectedGroup === 'All' || ex.muscle_group === selectedGroup;
-    const matchesSearch = ex.name.toLowerCase().includes(search.toLowerCase()) ||
-                          ex.equipment.toLowerCase().includes(search.toLowerCase());
+    const query = search.toLowerCase();
+    const matchesSearch =
+      ex.name.toLowerCase().includes(query) ||
+      ex.equipment.toLowerCase().includes(query) ||
+      (ex.joint_action ? ex.joint_action.toLowerCase().includes(query) : false);
     return matchesGroup && matchesSearch;
   });
 
@@ -147,6 +150,12 @@ export const ExercisesScreen: React.FC = () => {
               <Text style={styles.exerciseName}>{item.name}</Text>
               <View style={styles.badgesRow}>
                 <Badge label={item.muscle_group} variant="primary" size="sm" />
+                {item.joint_action ? (
+                  <View style={styles.jointActionBadge}>
+                    <Ionicons name="body-outline" size={10} color="#06B6D4" />
+                    <Text style={styles.jointActionText}>{item.joint_action}</Text>
+                  </View>
+                ) : null}
                 <Badge label={item.equipment} variant="surface" size="sm" />
                 {item.is_custom === 1 && (
                   <Badge label="CUSTOM" variant="gold" size="sm" />
@@ -184,6 +193,12 @@ export const ExercisesScreen: React.FC = () => {
             {selectedExercise && (
               <View style={styles.badgesRow}>
                 <Badge label={selectedExercise.muscle_group} variant="primary" size="md" />
+                {selectedExercise.joint_action ? (
+                  <View style={styles.jointActionBadgeMd}>
+                    <Ionicons name="body-outline" size={12} color="#06B6D4" />
+                    <Text style={styles.jointActionTextMd}>{selectedExercise.joint_action}</Text>
+                  </View>
+                ) : null}
                 <Badge label={selectedExercise.equipment} variant="surface" size="md" />
                 {selectedExercise.is_custom === 1 && (
                   <Badge label="CUSTOM EXERCISE" variant="gold" size="md" />
@@ -387,6 +402,38 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8
+  },
+  jointActionBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 3,
+    backgroundColor: 'rgba(6, 182, 212, 0.1)',
+    paddingHorizontal: 7,
+    paddingVertical: 2,
+    borderRadius: 6,
+    borderWidth: 1,
+    borderColor: 'rgba(6, 182, 212, 0.25)'
+  },
+  jointActionText: {
+    fontSize: 10,
+    fontWeight: '700',
+    color: '#06B6D4'
+  },
+  jointActionBadgeMd: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: 'rgba(6, 182, 212, 0.12)',
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: 'rgba(6, 182, 212, 0.3)'
+  },
+  jointActionTextMd: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#06B6D4'
   },
   modalContainer: {
     flex: 1,
