@@ -31,7 +31,16 @@ interface WorkoutContextValue {
   isWorkoutModalVisible: boolean;
   setIsWorkoutModalVisible: (visible: boolean) => void;
 
-  startWorkout: (name?: string, templateId?: string, initialExercises?: { exercise: Exercise; target_sets: number }[]) => Promise<void>;
+  startWorkout: (
+    name?: string,
+    templateId?: string,
+    initialExercises?: {
+      exercise: Exercise;
+      target_sets: number;
+      target_reps_min?: number;
+      target_reps_max?: number;
+    }[]
+  ) => Promise<void>;
   finishWorkout: (notes?: string) => Promise<void>;
   cancelWorkout: () => void;
   addExerciseToWorkout: (exercise: Exercise, machine?: MachineVariant) => Promise<void>;
@@ -332,7 +341,12 @@ export const WorkoutProvider: React.FC<{ children: React.ReactNode }> = ({ child
   const startWorkout = async (
     name?: string,
     templateId?: string,
-    initialExercises?: { exercise: Exercise; target_sets: number }[]
+    initialExercises?: {
+      exercise: Exercise;
+      target_sets: number;
+      target_reps_min?: number;
+      target_reps_max?: number;
+    }[]
   ) => {
     const workoutId = `workout_${Date.now()}`;
     const startTime = Date.now();
@@ -358,6 +372,8 @@ export const WorkoutProvider: React.FC<{ children: React.ReactNode }> = ({ child
         const prevSets = await getPreviousSetsForExercise(item.exercise.id, defaultMachine?.id);
         const sets: WorkoutSet[] = [];
         const count = item.target_sets || 3;
+        const targetMin = item.target_reps_min ?? initialRepMin;
+        const targetMax = item.target_reps_max ?? initialRepMax;
 
         for (let i = 1; i <= count; i++) {
           const prev = prevSets[i - 1];
@@ -368,7 +384,7 @@ export const WorkoutProvider: React.FC<{ children: React.ReactNode }> = ({ child
             set_number: i,
             set_type: prev?.set_type || 'normal',
             weight: prev ? prev.weight : 0,
-            reps: prev ? prev.reps : 10,
+            reps: prev ? prev.reps : targetMax,
             rpe: prev?.rpe,
             is_completed: false,
             is_pr: false,
@@ -382,8 +398,8 @@ export const WorkoutProvider: React.FC<{ children: React.ReactNode }> = ({ child
           exercise: item.exercise,
           selectedMachine: defaultMachine,
           notes: item.exercise.notes || '',
-          targetRepsMin: workoutRepRange.min,
-          targetRepsMax: workoutRepRange.max,
+          targetRepsMin: targetMin,
+          targetRepsMax: targetMax,
           sets,
           previousSets: prevSets
         });

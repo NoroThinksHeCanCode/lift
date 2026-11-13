@@ -62,6 +62,8 @@ export async function initDatabase(): Promise<void> {
       exercise_id TEXT NOT NULL,
       order_index INTEGER NOT NULL,
       target_sets INTEGER DEFAULT 3,
+      target_reps_min INTEGER DEFAULT 8,
+      target_reps_max INTEGER DEFAULT 12,
       machine_id TEXT,
       FOREIGN KEY (template_id) REFERENCES templates(id) ON DELETE CASCADE,
       FOREIGN KEY (exercise_id) REFERENCES exercises(id)
@@ -100,6 +102,13 @@ export async function initDatabase(): Promise<void> {
 
   try {
     await db.execAsync('ALTER TABLE exercises ADD COLUMN joint_action TEXT;');
+  } catch (_) {}
+
+  try {
+    await db.execAsync('ALTER TABLE template_exercises ADD COLUMN target_reps_min INTEGER DEFAULT 8;');
+  } catch (_) {}
+  try {
+    await db.execAsync('ALTER TABLE template_exercises ADD COLUMN target_reps_max INTEGER DEFAULT 12;');
   } catch (_) {}
 
   // Seed exercises if empty
@@ -485,13 +494,15 @@ export async function getAllTemplates(): Promise<Template[]> {
       exercise_id: string;
       order_index: number;
       target_sets: number;
+      target_reps_min?: number;
+      target_reps_max?: number;
       name: string;
       muscle_group: MuscleGroup;
       equipment: Equipment;
       is_custom: number;
       notes?: string;
     }>(
-      `SELECT te.exercise_id, te.order_index, te.target_sets, 
+      `SELECT te.exercise_id, te.order_index, te.target_sets, te.target_reps_min, te.target_reps_max,
               e.name, e.muscle_group, e.equipment, e.is_custom, e.notes
        FROM template_exercises te
        JOIN exercises e ON te.exercise_id = e.id
@@ -511,7 +522,9 @@ export async function getAllTemplates(): Promise<Template[]> {
           is_custom: re.is_custom,
           notes: re.notes
         },
-        target_sets: re.target_sets
+        target_sets: re.target_sets,
+        target_reps_min: re.target_reps_min ?? 8,
+        target_reps_max: re.target_reps_max ?? 12
       }))
     });
   }
@@ -522,7 +535,7 @@ export async function getAllTemplates(): Promise<Template[]> {
 export async function saveTemplate(
   name: string,
   notes: string,
-  exercises: { exerciseId: string; targetSets: number }[],
+  exercises: { exerciseId: string; targetSets: number; targetRepsMin?: number; targetRepsMax?: number }[],
   templateId?: string
 ): Promise<string> {
   const db = await getDB();
@@ -538,9 +551,11 @@ export async function saveTemplate(
 
     for (let i = 0; i < exercises.length; i++) {
       const e = exercises[i];
+      const minR = e.targetRepsMin ?? 8;
+      const maxR = e.targetRepsMax ?? 12;
       await txn.runAsync(
-        'INSERT INTO template_exercises (id, template_id, exercise_id, order_index, target_sets) VALUES (?, ?, ?, ?, ?)',
-        `${id}_${i}`, id, e.exerciseId, i, e.targetSets
+        'INSERT INTO template_exercises (id, template_id, exercise_id, order_index, target_sets, target_reps_min, target_reps_max) VALUES (?, ?, ?, ?, ?, ?, ?)',
+        `${id}_${i}`, id, e.exerciseId, i, e.targetSets, minR, maxR
       );
     }
   });

@@ -34,10 +34,18 @@ export const WorkoutsScreen: React.FC = () => {
     return `Good Evening${name}`;
   };
 
-  // Template creation state
+  interface RoutineExerciseItem {
+    exercise: Exercise;
+    target_sets: number;
+    target_reps_min: number;
+    target_reps_max: number;
+  }
+
+  // Template creation & editing state
+  const [editingTemplateId, setEditingTemplateId] = useState<string | null>(null);
   const [templateName, setTemplateName] = useState('');
   const [templateNotes, setTemplateNotes] = useState('');
-  const [templateExercises, setTemplateExercises] = useState<{ exercise: Exercise; target_sets: number }[]>([]);
+  const [templateExercises, setTemplateExercises] = useState<RoutineExerciseItem[]>([]);
   const [showExercisePicker, setShowExercisePicker] = useState(false);
 
   const loadTemplates = async () => {
@@ -77,7 +85,7 @@ export const WorkoutsScreen: React.FC = () => {
   const handleDeleteTemplate = (id: string, name: string) => {
     triggerHapticSelection();
     Alert.alert(
-      'Delete Template',
+      'Delete Routine',
       `Delete "${name}"? This cannot be undone.`,
       [
         { text: 'Cancel', style: 'cancel' },
@@ -93,7 +101,45 @@ export const WorkoutsScreen: React.FC = () => {
     );
   };
 
-  const handleSaveNewTemplate = async () => {
+  const handleOpenCreateModal = () => {
+    triggerHapticSelection();
+    setEditingTemplateId(null);
+    setTemplateName('');
+    setTemplateNotes('');
+    setTemplateExercises([]);
+    setShowCreateTemplateModal(true);
+  };
+
+  const handleOpenEditModal = (template: Template) => {
+    triggerHapticSelection();
+    setEditingTemplateId(template.id);
+    setTemplateName(template.name);
+    setTemplateNotes(template.notes || '');
+    setTemplateExercises(
+      (template.exercises || []).map(te => ({
+        exercise: te.exercise,
+        target_sets: te.target_sets || 3,
+        target_reps_min: te.target_reps_min ?? (settings.defaultRepRangeMin || 8),
+        target_reps_max: te.target_reps_max ?? (settings.defaultRepRangeMax || 12)
+      }))
+    );
+    setShowCreateTemplateModal(true);
+  };
+
+  const moveExercise = (index: number, direction: 'up' | 'down') => {
+    triggerHapticSelection();
+    setTemplateExercises(prev => {
+      const targetIdx = direction === 'up' ? index - 1 : index + 1;
+      if (targetIdx < 0 || targetIdx >= prev.length) return prev;
+      const next = [...prev];
+      const temp = next[index];
+      next[index] = next[targetIdx];
+      next[targetIdx] = temp;
+      return next;
+    });
+  };
+
+  const handleSaveTemplate = async () => {
     if (!templateName.trim()) {
       Alert.alert('Required', 'Please enter a routine name.');
       return;
@@ -106,9 +152,16 @@ export const WorkoutsScreen: React.FC = () => {
     await saveTemplate(
       templateName,
       templateNotes,
-      templateExercises.map(te => ({ exerciseId: te.exercise.id, targetSets: te.target_sets }))
+      templateExercises.map(te => ({
+        exerciseId: te.exercise.id,
+        targetSets: te.target_sets,
+        targetRepsMin: te.target_reps_min,
+        targetRepsMax: te.target_reps_max
+      })),
+      editingTemplateId || undefined
     );
     triggerHapticSuccess();
+    setEditingTemplateId(null);
     setTemplateName('');
     setTemplateNotes('');
     setTemplateExercises([]);
@@ -144,10 +197,7 @@ export const WorkoutsScreen: React.FC = () => {
           <Text style={styles.sectionTitle}>MY ROUTINES & TEMPLATES</Text>
           <TouchableOpacity
             style={styles.newRoutineBtn}
-            onPress={() => {
-              triggerHapticSelection();
-              setShowCreateTemplateModal(true);
-            }}
+            onPress={handleOpenCreateModal}
           >
             <Ionicons name="add" size={16} color={THEME.colors.primary} />
             <Text style={styles.newRoutineText}>New Routine</Text>
@@ -159,19 +209,28 @@ export const WorkoutsScreen: React.FC = () => {
           {templates.map((template) => (
             <View key={template.id} style={styles.templateCard}>
               <View style={styles.templateTopRow}>
-                <View style={{ flex: 1 }}>
+                <View style={{ flex: 1, paddingRight: 8 }}>
                   <Text style={styles.templateName}>{template.name}</Text>
                   {template.notes ? (
                     <Text style={styles.templateNotes}>{template.notes}</Text>
                   ) : null}
                 </View>
 
-                <TouchableOpacity
-                  onPress={() => handleDeleteTemplate(template.id, template.name)}
-                  style={styles.trashBtn}
-                >
-                  <Ionicons name="trash-outline" size={18} color={THEME.colors.textMuted} />
-                </TouchableOpacity>
+                <View style={styles.cardHeaderActions}>
+                  <TouchableOpacity
+                    onPress={() => handleOpenEditModal(template)}
+                    style={styles.editPencilBtn}
+                  >
+                    <Ionicons name="pencil" size={15} color={THEME.colors.cyan} />
+                  </TouchableOpacity>
+
+                  <TouchableOpacity
+                    onPress={() => handleDeleteTemplate(template.id, template.name)}
+                    style={styles.trashBtn}
+                  >
+                    <Ionicons name="trash-outline" size={16} color={THEME.colors.textMuted} />
+                  </TouchableOpacity>
+                </View>
               </View>
 
               {/* Exercises in template preview */}
@@ -179,7 +238,10 @@ export const WorkoutsScreen: React.FC = () => {
                 {template.exercises && template.exercises.length > 0 ? (
                   template.exercises.map((te, idx) => (
                     <Text key={idx} style={styles.previewExText} numberOfLines={1}>
-                      • {te.exercise.name} <Text style={styles.previewSetsText}>({te.target_sets} sets)</Text>
+                      • {te.exercise.name}{' '}
+                      <Text style={styles.previewSetsText}>
+                        ({te.target_sets} sets • {te.target_reps_min ?? 8}–{te.target_reps_max ?? 12} reps)
+                      </Text>
                     </Text>
                   ))
                 ) : (
@@ -187,20 +249,30 @@ export const WorkoutsScreen: React.FC = () => {
                 )}
               </View>
 
-              {/* Start Routine Button */}
-              <TouchableOpacity
-                style={styles.startRoutineBtn}
-                onPress={() => handleStartTemplate(template)}
-              >
-                <Ionicons name="play" size={16} color={THEME.colors.primary} />
-                <Text style={styles.startRoutineText}>Start Routine</Text>
-              </TouchableOpacity>
+              {/* Action Buttons Row */}
+              <View style={styles.cardBtnRow}>
+                <TouchableOpacity
+                  style={styles.editRoutineBtn}
+                  onPress={() => handleOpenEditModal(template)}
+                >
+                  <Ionicons name="create-outline" size={15} color={THEME.colors.cyan} />
+                  <Text style={styles.editRoutineText}>Edit</Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={styles.startRoutineBtn}
+                  onPress={() => handleStartTemplate(template)}
+                >
+                  <Ionicons name="play" size={15} color={THEME.colors.primary} />
+                  <Text style={styles.startRoutineText}>Start Routine</Text>
+                </TouchableOpacity>
+              </View>
             </View>
           ))}
         </View>
       </ScrollView>
 
-      {/* Create Template Modal */}
+      {/* Create / Edit Routine Modal */}
       <Modal
         visible={showCreateTemplateModal}
         animationType="slide"
@@ -215,13 +287,15 @@ export const WorkoutsScreen: React.FC = () => {
             >
               <Ionicons name="close" size={24} color={THEME.colors.textPrimary} />
             </TouchableOpacity>
-            <Text style={styles.modalHeaderTitle}>Create Routine</Text>
-            <TouchableOpacity onPress={handleSaveNewTemplate} style={styles.saveTemplateBtn}>
+            <Text style={styles.modalHeaderTitle}>
+              {editingTemplateId ? 'Edit Routine' : 'Create Routine'}
+            </Text>
+            <TouchableOpacity onPress={handleSaveTemplate} style={styles.saveTemplateBtn}>
               <Text style={styles.saveTemplateBtnText}>Save</Text>
             </TouchableOpacity>
           </View>
 
-          <ScrollView contentContainerStyle={styles.modalContent}>
+          <ScrollView contentContainerStyle={styles.modalContent} keyboardShouldPersistTaps="handled">
             {/* Template Name */}
             <View style={styles.fieldGroup}>
               <Text style={styles.fieldLabel}>ROUTINE NAME</Text>
@@ -250,7 +324,7 @@ export const WorkoutsScreen: React.FC = () => {
             {/* Exercises List in Template */}
             <View style={styles.fieldGroup}>
               <View style={styles.subHeaderRow}>
-                <Text style={styles.fieldLabel}>EXERCISES</Text>
+                <Text style={styles.fieldLabel}>EXERCISES ({templateExercises.length})</Text>
                 <TouchableOpacity
                   style={styles.addExChip}
                   onPress={() => {
@@ -269,53 +343,165 @@ export const WorkoutsScreen: React.FC = () => {
                 </View>
               ) : (
                 templateExercises.map((te, idx) => (
-                  <View key={idx} style={styles.templateExRow}>
-                    <View style={{ flex: 1 }}>
-                      <Text style={styles.templateExName}>{te.exercise.name}</Text>
-                      <Badge label={te.exercise.muscle_group} variant="primary" size="sm" />
-                    </View>
+                  <View key={idx} style={styles.templateExCard}>
+                    {/* Header Row: Reorder, Name, Muscle & Delete */}
+                    <View style={styles.templateExCardHeader}>
+                      <View style={styles.reorderBtnsGroup}>
+                        <TouchableOpacity
+                          disabled={idx === 0}
+                          onPress={() => moveExercise(idx, 'up')}
+                          style={[styles.reorderBtn, idx === 0 && { opacity: 0.25 }]}
+                        >
+                          <Ionicons name="chevron-up" size={14} color="#FFFFFF" />
+                        </TouchableOpacity>
+                        <TouchableOpacity
+                          disabled={idx === templateExercises.length - 1}
+                          onPress={() => moveExercise(idx, 'down')}
+                          style={[styles.reorderBtn, idx === templateExercises.length - 1 && { opacity: 0.25 }]}
+                        >
+                          <Ionicons name="chevron-down" size={14} color="#FFFFFF" />
+                        </TouchableOpacity>
+                      </View>
 
-                    {/* Target Sets Stepper */}
-                    <View style={styles.setsStepper}>
+                      <View style={{ flex: 1, marginLeft: 8 }}>
+                        <Text style={styles.templateExName}>{te.exercise.name}</Text>
+                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 2 }}>
+                          <Badge label={te.exercise.muscle_group} variant="primary" size="sm" />
+                          <Badge label={te.exercise.equipment} variant="cyan" size="sm" />
+                        </View>
+                      </View>
+
                       <TouchableOpacity
                         onPress={() => {
                           triggerHapticSelection();
-                          setTemplateExercises(prev =>
-                            prev.map((item, i) =>
-                              i === idx ? { ...item, target_sets: Math.max(1, item.target_sets - 1) } : item
-                            )
-                          );
+                          setTemplateExercises(prev => prev.filter((_, i) => i !== idx));
                         }}
-                        style={styles.stepBtn}
+                        style={styles.deleteExBtn}
                       >
-                        <Ionicons name="remove" size={14} color={THEME.colors.textPrimary} />
-                      </TouchableOpacity>
-                      <Text style={styles.stepVal}>{te.target_sets} sets</Text>
-                      <TouchableOpacity
-                        onPress={() => {
-                          triggerHapticSelection();
-                          setTemplateExercises(prev =>
-                            prev.map((item, i) =>
-                              i === idx ? { ...item, target_sets: item.target_sets + 1 } : item
-                            )
-                          );
-                        }}
-                        style={styles.stepBtn}
-                      >
-                        <Ionicons name="add" size={14} color={THEME.colors.textPrimary} />
+                        <Ionicons name="trash-outline" size={16} color={THEME.colors.danger} />
                       </TouchableOpacity>
                     </View>
 
-                    {/* Delete Exercise */}
-                    <TouchableOpacity
-                      onPress={() => {
-                        triggerHapticSelection();
-                        setTemplateExercises(prev => prev.filter((_, i) => i !== idx));
-                      }}
-                      style={{ padding: 6, marginLeft: 6 }}
-                    >
-                      <Ionicons name="trash-outline" size={16} color={THEME.colors.danger} />
-                    </TouchableOpacity>
+                    {/* Divider */}
+                    <View style={styles.cardDivider} />
+
+                    {/* Steppers: Sets & Reps */}
+                    <View style={styles.templateExSteppersRow}>
+                      {/* Sets */}
+                      <View style={styles.stepperSubBlock}>
+                        <Text style={styles.stepperSubBlockLabel}>SETS</Text>
+                        <View style={styles.stepperControl}>
+                          <TouchableOpacity
+                            onPress={() => {
+                              triggerHapticSelection();
+                              setTemplateExercises(prev =>
+                                prev.map((item, i) =>
+                                  i === idx ? { ...item, target_sets: Math.max(1, item.target_sets - 1) } : item
+                                )
+                              );
+                            }}
+                            style={styles.miniStepBtn}
+                          >
+                            <Ionicons name="remove" size={13} color="#FFFFFF" />
+                          </TouchableOpacity>
+                          <Text style={styles.stepperValText}>{te.target_sets}</Text>
+                          <TouchableOpacity
+                            onPress={() => {
+                              triggerHapticSelection();
+                              setTemplateExercises(prev =>
+                                prev.map((item, i) =>
+                                  i === idx ? { ...item, target_sets: item.target_sets + 1 } : item
+                                )
+                              );
+                            }}
+                            style={styles.miniStepBtn}
+                          >
+                            <Ionicons name="add" size={13} color="#FFFFFF" />
+                          </TouchableOpacity>
+                        </View>
+                      </View>
+
+                      {/* Reps */}
+                      <View style={[styles.stepperSubBlock, { flex: 1.4 }]}>
+                        <Text style={styles.stepperSubBlockLabel}>TARGET REPS</Text>
+                        <View style={styles.repRangeInline}>
+                          {/* Min Reps */}
+                          <View style={styles.stepperControlMini}>
+                            <TouchableOpacity
+                              onPress={() => {
+                                triggerHapticSelection();
+                                setTemplateExercises(prev =>
+                                  prev.map((item, i) =>
+                                    i === idx ? { ...item, target_reps_min: Math.max(1, item.target_reps_min - 1) } : item
+                                  )
+                                );
+                              }}
+                              style={styles.miniStepBtn}
+                            >
+                              <Ionicons name="remove" size={11} color="#FFFFFF" />
+                            </TouchableOpacity>
+                            <Text style={styles.stepperValTextMini}>{te.target_reps_min}</Text>
+                            <TouchableOpacity
+                              onPress={() => {
+                                triggerHapticSelection();
+                                setTemplateExercises(prev =>
+                                  prev.map((item, i) =>
+                                    i === idx
+                                      ? {
+                                          ...item,
+                                          target_reps_min: item.target_reps_min + 1,
+                                          target_reps_max: Math.max(item.target_reps_max, item.target_reps_min + 1)
+                                        }
+                                      : item
+                                  )
+                                );
+                              }}
+                              style={styles.miniStepBtn}
+                            >
+                              <Ionicons name="add" size={11} color="#FFFFFF" />
+                            </TouchableOpacity>
+                          </View>
+
+                          <Text style={styles.rangeDash}>–</Text>
+
+                          {/* Max Reps */}
+                          <View style={styles.stepperControlMini}>
+                            <TouchableOpacity
+                              onPress={() => {
+                                triggerHapticSelection();
+                                setTemplateExercises(prev =>
+                                  prev.map((item, i) =>
+                                    i === idx
+                                      ? {
+                                          ...item,
+                                          target_reps_max: Math.max(item.target_reps_min, item.target_reps_max - 1)
+                                        }
+                                      : item
+                                  )
+                                );
+                              }}
+                              style={styles.miniStepBtn}
+                            >
+                              <Ionicons name="remove" size={11} color="#FFFFFF" />
+                            </TouchableOpacity>
+                            <Text style={styles.stepperValTextMini}>{te.target_reps_max}</Text>
+                            <TouchableOpacity
+                              onPress={() => {
+                                triggerHapticSelection();
+                                setTemplateExercises(prev =>
+                                  prev.map((item, i) =>
+                                    i === idx ? { ...item, target_reps_max: item.target_reps_max + 1 } : item
+                                  )
+                                );
+                              }}
+                              style={styles.miniStepBtn}
+                            >
+                              <Ionicons name="add" size={11} color="#FFFFFF" />
+                            </TouchableOpacity>
+                          </View>
+                        </View>
+                      </View>
+                    </View>
                   </View>
                 ))
               )}
@@ -327,7 +513,15 @@ export const WorkoutsScreen: React.FC = () => {
             visible={showExercisePicker}
             onClose={() => setShowExercisePicker(false)}
             onSelect={(ex) => {
-              setTemplateExercises(prev => [...prev, { exercise: ex, target_sets: 3 }]);
+              setTemplateExercises(prev => [
+                ...prev,
+                {
+                  exercise: ex,
+                  target_sets: 3,
+                  target_reps_min: settings.defaultRepRangeMin || 8,
+                  target_reps_max: settings.defaultRepRangeMax || 12
+                }
+              ]);
             }}
           />
         </View>
@@ -464,6 +658,14 @@ const styles = StyleSheet.create({
   trashBtn: {
     padding: 4
   },
+  cardHeaderActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8
+  },
+  editPencilBtn: {
+    padding: 4
+  },
   templateExPreview: {
     gap: 4,
     marginBottom: 14
@@ -482,7 +684,30 @@ const styles = StyleSheet.create({
     color: THEME.colors.textMuted,
     fontStyle: 'italic'
   },
+  cardBtnRow: {
+    flexDirection: 'row',
+    gap: 10,
+    marginTop: 4
+  },
+  editRoutineBtn: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#14181F',
+    borderWidth: 1,
+    borderColor: '#1E293B',
+    paddingVertical: 10,
+    borderRadius: 8
+  },
+  editRoutineText: {
+    color: THEME.colors.cyan,
+    fontWeight: '700',
+    fontSize: 13,
+    marginLeft: 6
+  },
   startRoutineBtn: {
+    flex: 1.6,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
@@ -582,38 +807,110 @@ const styles = StyleSheet.create({
     color: THEME.colors.textMuted,
     fontSize: 13
   },
-  templateExRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
+  templateExCard: {
     backgroundColor: THEME.colors.surface,
     padding: 12,
     borderRadius: THEME.borderRadius.md,
-    marginBottom: 6,
+    marginBottom: 8,
     borderWidth: 1,
     borderColor: THEME.colors.border
+  },
+  templateExCardHeader: {
+    flexDirection: 'row',
+    alignItems: 'center'
+  },
+  reorderBtnsGroup: {
+    flexDirection: 'column',
+    gap: 2
+  },
+  reorderBtn: {
+    width: 22,
+    height: 18,
+    backgroundColor: THEME.colors.surfaceElevated,
+    borderRadius: 4,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: THEME.colors.border
+  },
+  deleteExBtn: {
+    padding: 6
+  },
+  cardDivider: {
+    height: 1,
+    backgroundColor: '#1E1E1E',
+    marginVertical: 10
+  },
+  templateExSteppersRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12
+  },
+  stepperSubBlock: {
+    flex: 1
+  },
+  stepperSubBlockLabel: {
+    fontSize: 9,
+    fontWeight: '800',
+    color: THEME.colors.textMuted,
+    letterSpacing: 0.8,
+    marginBottom: 4
+  },
+  stepperControl: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: THEME.colors.surfaceElevated,
+    borderRadius: 6,
+    borderWidth: 1,
+    borderColor: THEME.colors.border,
+    paddingHorizontal: 4,
+    paddingVertical: 3,
+    justifyContent: 'space-between'
+  },
+  miniStepBtn: {
+    width: 22,
+    height: 22,
+    borderRadius: 4,
+    backgroundColor: THEME.colors.surfaceHighlight,
+    justifyContent: 'center',
+    alignItems: 'center'
+  },
+  stepperValText: {
+    color: '#FFFFFF',
+    fontSize: 12,
+    fontWeight: '800'
+  },
+  repRangeInline: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4
+  },
+  stepperControlMini: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: THEME.colors.surfaceElevated,
+    borderRadius: 6,
+    borderWidth: 1,
+    borderColor: THEME.colors.border,
+    paddingHorizontal: 3,
+    paddingVertical: 3,
+    justifyContent: 'space-between'
+  },
+  stepperValTextMini: {
+    color: '#FFFFFF',
+    fontSize: 11,
+    fontWeight: '800'
+  },
+  rangeDash: {
+    color: THEME.colors.textMuted,
+    fontSize: 12,
+    fontWeight: '800'
   },
   templateExName: {
     color: THEME.colors.textPrimary,
     fontSize: 14,
     fontWeight: '700',
     marginBottom: 4
-  },
-  setsStepper: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: THEME.colors.surfaceElevated,
-    borderRadius: 6,
-    paddingHorizontal: 4,
-    borderWidth: 1,
-    borderColor: THEME.colors.border
-  },
-  stepBtn: {
-    padding: 6
-  },
-  stepVal: {
-    color: THEME.colors.textPrimary,
-    fontSize: 12,
-    fontWeight: '700',
-    paddingHorizontal: 6
   }
 });
