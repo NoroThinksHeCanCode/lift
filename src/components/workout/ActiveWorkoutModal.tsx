@@ -17,6 +17,7 @@ import { useSettings } from '../../context/SettingsContext';
 import { SetRow } from './SetRow';
 import { RestTimerBanner } from './RestTimerModal';
 import { RestTimerPickerModal } from './RestTimerPickerModal';
+import { RepRangePickerModal } from './RepRangePickerModal';
 import { ProgressiveOverloadModal } from './ProgressiveOverloadModal';
 import { MachineSelectorModal } from '../exercises/MachineSelectorModal';
 import { ExerciseSelectorModal } from '../exercises/ExerciseSelectorModal';
@@ -71,6 +72,14 @@ export const ActiveWorkoutModal: React.FC = () => {
     exerciseId?: string;
     exerciseName?: string;
     duration: number;
+  } | null>(null);
+
+  // Target rep range picker modal state (Feature 1)
+  const [repRangeTarget, setRepRangeTarget] = useState<{
+    exerciseId: string;
+    exerciseName: string;
+    min: number;
+    max: number;
   } | null>(null);
 
   if (!activeWorkout) return null;
@@ -231,32 +240,12 @@ export const ActiveWorkoutModal: React.FC = () => {
                         style={styles.repRangePill}
                         onPress={() => {
                           triggerHapticSelection();
-                          Alert.prompt
-                            ? Alert.prompt(
-                                'Target Rep Range',
-                                `Set target rep range for ${exercise.name} (e.g. 8-12):`,
-                                [
-                                  { text: 'Cancel', style: 'cancel' },
-                                  {
-                                    text: 'Save',
-                                    onPress: (val) => {
-                                      if (val) {
-                                        const parts = val.split(/[-–,]/).map(p => parseInt(p.trim(), 10));
-                                        if (parts.length >= 2 && !isNaN(parts[0]) && !isNaN(parts[1])) {
-                                          setExerciseTargetRepRange(exercise.id, parts[0], parts[1]);
-                                        }
-                                      }
-                                    }
-                                  }
-                                ],
-                                'plain-text',
-                                `${exSession.targetRepsMin}-${exSession.targetRepsMax}`
-                              )
-                            : setExerciseTargetRepRange(
-                                exercise.id,
-                                exSession.targetRepsMin === 8 ? 6 : 8,
-                                exSession.targetRepsMax === 12 ? 10 : 12
-                              );
+                          setRepRangeTarget({
+                            exerciseId: exercise.id,
+                            exerciseName: exercise.name,
+                            min: exSession.targetRepsMin,
+                            max: exSession.targetRepsMax
+                          });
                         }}
                       >
                         <Ionicons name="flag-outline" size={11} color={THEME.colors.primary} />
@@ -422,6 +411,20 @@ export const ActiveWorkoutModal: React.FC = () => {
                 setExerciseCustomRest(restPickerTarget.exerciseId, secs);
               }
               startRestTimer(secs);
+            }}
+          />
+        )}
+
+        {/* Target Rep Range Picker Modal (Feature 1: Progressive Overload) */}
+        {repRangeTarget && (
+          <RepRangePickerModal
+            visible={true}
+            exerciseName={repRangeTarget.exerciseName}
+            initialMin={repRangeTarget.min}
+            initialMax={repRangeTarget.max}
+            onClose={() => setRepRangeTarget(null)}
+            onSave={(min, max) => {
+              setExerciseTargetRepRange(repRangeTarget.exerciseId, min, max);
             }}
           />
         )}

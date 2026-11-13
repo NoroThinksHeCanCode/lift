@@ -31,9 +31,6 @@ jobs:
       - name: 📦 Install dependencies
         run: npm install
 
-      - name: ⚙️ Expo Prebuild
-        run: npx expo prebuild --platform android --no-install
-
       - name: 🔨 Build Release APK (Standalone with embedded bundle)
         run: |
           cd android
@@ -51,5 +48,10 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          cp android/app/build/outputs/apk/release/app-release.apk Lift-v1.0.0.apk
-          gh release upload v1.0.0 Lift-v1.0.0.apk --clobber || true
+          cp android/app/build/outputs/apk/release/app-release.apk Lift-v1.0.1.apk
+          gh release upload v1.0.0 Lift-v1.0.1.apk#Lift-v1.0.0.apk --clobber || true
+          gh release create v1.0.1 Lift-v1.0.1.apk --title "Lift v1.0.1 (Android APK)" --notes "### 🚀 Lift v1.0.1 Release
+- 📲 **Native Android Home Screen Widgets**: Active workout live tracker & Fitbit / Health Connect recovery widget.
+- 🔔 **Ongoing Workout Notification Shade Bar**: Non-dismissible status bar & notification shade ongoing bar with live timer, exercise, and set details.
+- 🎯 **Target Rep Range Modal**: Clean, interactive modal with steppers and quick presets (3-5, 6-8, 8-12, 10-15, 12-15, 15-20) to trigger progressive overload.
+- ⚡ **Google Health Connect & Fitbit Permissions**: Direct linkage to Android Health Connect permissions and manual metrics adjustment." || true

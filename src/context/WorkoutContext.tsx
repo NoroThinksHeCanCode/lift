@@ -143,6 +143,17 @@ export const WorkoutProvider: React.FC<{ children: React.ReactNode }> = ({ child
       workoutStartRef.current = null;
       setElapsedSeconds(0);
       clearOngoingWorkoutNotification();
+      syncActiveWorkoutToWidget({
+        isActive: false,
+        workoutName: 'No Active Workout',
+        elapsedSeconds: 0,
+        exerciseName: 'Tap to start a session',
+        setNumber: 1,
+        weight: 0,
+        reps: 0,
+        unit: settings.unit,
+        lastUpdated: Date.now()
+      });
     }
     return () => {
       if (interval) clearInterval(interval);

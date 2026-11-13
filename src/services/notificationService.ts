@@ -1,4 +1,4 @@
-import { Platform } from 'react-native';
+import { NativeModules, Platform, PermissionsAndroid } from 'react-native';
 
 export interface NotificationWorkoutPayload {
   workoutName: string;
@@ -13,33 +13,77 @@ export interface NotificationWorkoutPayload {
   restRemaining?: number;
 }
 
-let notificationActive = false;
+let notificationPermissionRequested = false;
+
+export async function requestNotificationPermission(): Promise<boolean> {
+  if (Platform.OS !== 'android') return true;
+
+  try {
+    if (Platform.Version >= 33) {
+      const granted = await PermissionsAndroid.request(
+        PermissionsAndroid.PERMISSIONS.POST_NOTIFICATIONS,
+        {
+          title: 'Ongoing Workout Notification',
+          message: 'Lift needs permission to display your live workout timer, active exercise, and rest countdown in the notification shade.',
+          buttonPositive: 'Allow',
+          buttonNegative: 'Not Now'
+        }
+      );
+      return granted === PermissionsAndroid.RESULTS.GRANTED;
+    }
+    return true;
+  } catch (e) {
+    console.warn('Failed to request notification permission:', e);
+    return false;
+  }
+}
 
 /**
  * Manages the Android Notification Panel Ongoing Workout Bar.
  * On Android, this displays as a persistent, non-dismissible notification in the status bar & notification shade.
  */
 export async function updateOngoingWorkoutNotification(payload: NotificationWorkoutPayload): Promise<void> {
-  if (Platform.OS === 'web') return;
+  if (Platform.OS !== 'android') return;
 
   try {
-    const exerciseSub = payload.currentExerciseName
-      ? `${payload.currentExerciseName} • Set ${payload.currentSetNumber || 1}`
-      : 'Active Workout in Progress';
+    if (!notificationPermissionRequested) {
+      notificationPermissionRequested = true;
+      requestNotificationPermission().catch(() => {});
+    }
+
+    const { LiftNative } = NativeModules;
+    if (!LiftNative) return;
+
+    const workoutTitle = `${payload.workoutName} (${payload.formattedTime})`;
+    const exercise = payload.currentExerciseName || '';
+
+    let setDetails = `Set ${payload.currentSetNumber || 1}`;
+    if (payload.lastWeight && payload.lastWeight > 0) {
+      setDetails += ` • Target: ${payload.lastWeight} ${payload.unit || 'lbs'} × ${payload.lastReps || 10} reps`;
+    }
 
     const restInfo = payload.isRestActive && payload.restRemaining && payload.restRemaining > 0
-      ? ` • Rest: ${Math.floor(payload.restRemaining / 60)}:${String(payload.restRemaining % 60).padStart(2, '0')}`
+      ? `⏱️ Rest: ${Math.floor(payload.restRemaining / 60)}:${String(payload.restRemaining % 60).padStart(2, '0')}`
       : '';
 
-    const contentText = `${exerciseSub}${restInfo}`;
-
-    // Logs state for bridge / foreground service
-    notificationActive = true;
+    LiftNative.updateOngoingWorkoutNotification(
+      workoutTitle,
+      exercise,
+      setDetails,
+      restInfo
+    );
   } catch (err) {
-    console.warn('Failed to update notification bar:', err);
+    console.warn('Failed to update ongoing workout notification:', err);
   }
 }
 
 export async function clearOngoingWorkoutNotification(): Promise<void> {
-  notificationActive = false;
+  if (Platform.OS !== 'android') return;
+
+  try {
+    const { LiftNative } = NativeModules;
+    LiftNative?.clearOngoingWorkoutNotification();
+  } catch (err) {
+    console.warn('Failed to clear ongoing notification:', err);
+  }
 }
