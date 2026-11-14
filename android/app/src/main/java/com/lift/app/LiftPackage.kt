@@ -9,7 +9,10 @@ import com.facebook.react.uimanager.ViewManager
 
 class LiftPackage : ReactPackage {
     override fun createNativeModules(reactContext: ReactApplicationContext): List<NativeModule> {
-        return listOf(LiftNativeModule(reactContext))
+        return listOf(
+            LiftNativeModule(reactContext),
+            LiftSpeechModule(reactContext)
+        )
     }
 
     override fun createViewManagers(reactContext: ReactApplicationContext): List<ViewManager<View, ReactShadowNode<*>>> {

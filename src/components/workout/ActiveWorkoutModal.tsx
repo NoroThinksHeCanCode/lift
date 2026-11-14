@@ -21,6 +21,7 @@ import { RepRangePickerModal } from './RepRangePickerModal';
 import { ExerciseNoteModal } from './ExerciseNoteModal';
 import { ProgressiveOverloadModal } from './ProgressiveOverloadModal';
 import { PRCelebrationModal } from './PRCelebrationModal';
+import { VoiceLogModal } from './VoiceLogModal';
 import { MachineSelectorModal } from '../exercises/MachineSelectorModal';
 import { ExerciseSelectorModal } from '../exercises/ExerciseSelectorModal';
 import { PlateCalculatorModal } from '../plates/PlateCalculatorModal';
@@ -91,6 +92,10 @@ export const ActiveWorkoutModal: React.FC = () => {
     exerciseName: string;
     note: string;
   } | null>(null);
+
+  // Voice Log Modal state
+  const [showVoiceLog, setShowVoiceLog] = useState(false);
+  const [voiceLogTargetExId, setVoiceLogTargetExId] = useState<string | undefined>(undefined);
 
   if (!activeWorkout) return null;
 
@@ -235,6 +240,19 @@ export const ActiveWorkoutModal: React.FC = () => {
               <Text style={styles.restStepText}>+30s</Text>
             </TouchableOpacity>
           </View>
+
+          {/* Quick Voice Log Button */}
+          <TouchableOpacity
+            style={styles.voiceLogToolbarBtn}
+            onPress={() => {
+              triggerHapticSelection();
+              setVoiceLogTargetExId(undefined);
+              setShowVoiceLog(true);
+            }}
+          >
+            <Ionicons name="mic" size={14} color={THEME.colors.primary} />
+            <Text style={styles.voiceLogToolbarText}>Voice</Text>
+          </TouchableOpacity>
         </View>
 
         <ScrollView contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled">
@@ -325,6 +343,19 @@ export const ActiveWorkoutModal: React.FC = () => {
                         <Text style={[styles.noteBtnText, exNotes ? { color: THEME.colors.primary } : null]}>
                           {exNotes ? 'Note' : '+ Note'}
                         </Text>
+                      </TouchableOpacity>
+
+                      {/* Exercise Voice Log Button */}
+                      <TouchableOpacity
+                        style={styles.micExerciseBtn}
+                        onPress={() => {
+                          triggerHapticSelection();
+                          setVoiceLogTargetExId(exercise.id);
+                          setShowVoiceLog(true);
+                        }}
+                      >
+                        <Ionicons name="mic-outline" size={11} color={THEME.colors.primary} />
+                        <Text style={styles.micExerciseBtnText}>Voice</Text>
                       </TouchableOpacity>
                     </View>
 
@@ -538,6 +569,16 @@ export const ActiveWorkoutModal: React.FC = () => {
 
         {/* PR Toast Notification */}
         <PRCelebrationModal />
+
+        {/* Voice Log Modal */}
+        <VoiceLogModal
+          visible={showVoiceLog}
+          targetExerciseId={voiceLogTargetExId}
+          onClose={() => {
+            setShowVoiceLog(false);
+            setVoiceLogTargetExId(undefined);
+          }}
+        />
       </View>
     </Modal>
   );
@@ -872,5 +913,37 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: '600',
     color: THEME.colors.danger
+  },
+  voiceLogToolbarBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    backgroundColor: '#121212',
+    borderWidth: 1,
+    borderColor: `${THEME.colors.primary}50`,
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 7
+  },
+  voiceLogToolbarText: {
+    color: THEME.colors.primary,
+    fontSize: 12,
+    fontWeight: '800'
+  },
+  micExerciseBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 3,
+    backgroundColor: '#121212',
+    paddingHorizontal: 7,
+    paddingVertical: 3,
+    borderRadius: 6,
+    borderWidth: 1,
+    borderColor: '#262626'
+  },
+  micExerciseBtnText: {
+    fontSize: 10,
+    fontWeight: '700',
+    color: THEME.colors.primary
   }
 });

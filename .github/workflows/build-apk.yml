@@ -40,7 +40,7 @@ jobs:
       - name: 📤 Upload APK Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: Lift-v1.0.6-release
+          name: Lift-v1.0.7-release
           path: android/app/build/outputs/apk/release/app-release.apk
           if-no-files-found: error
 
@@ -48,11 +48,7 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          cp android/app/build/outputs/apk/release/app-release.apk Lift-v1.0.6.apk
-          gh release upload v1.0.0 Lift-v1.0.6.apk#Lift-v1.0.0.apk --clobber || true
-          gh release upload v1.0.1 Lift-v1.0.6.apk#Lift-v1.0.1.apk --clobber || true
-          gh release upload v1.0.2 Lift-v1.0.6.apk#Lift-v1.0.2.apk --clobber || true
-          gh release upload v1.0.3 Lift-v1.0.6.apk#Lift-v1.0.3.apk --clobber || true
-          gh release upload v1.0.4 Lift-v1.0.6.apk#Lift-v1.0.4.apk --clobber || true
-          gh release upload v1.0.5 Lift-v1.0.6.apk#Lift-v1.0.5.apk --clobber || true
-          gh release create v1.0.6 Lift-v1.0.6.apk --title "L!FT v1.0.6 (Android APK)" --notes "L!FT v1.0.6: Full Saved Routine Editing - edit routine name, description, add/remove/reorder exercises, customize sets and target rep ranges for every exercise." || true
+          cp android/app/build/outputs/apk/release/app-release.apk Lift-v1.0.7.apk
+          gh release upload v1.0.0 Lift-v1.0.7.apk#Lift-v1.0.0.apk --clobber || true
+          gh release upload v1.0.6 Lift-v1.0.7.apk#Lift-v1.0.6.apk --clobber || true
+          gh release create v1.0.7 Lift-v1.0.7.apk --title "L!FT v1.0.7 (Android APK)" --notes "L!FT v1.0.7: Hands-free Offline Voice Logging for sets! Speak naturally ('225 for 8', 'two plates for 10', '100kg 8 reps', 'same weight for 10', 'bodyweight 15', 'RPE 8'), with on-device speech recognition, live transcript preview, and automatic set completion." || gh release upload v1.0.7 Lift-v1.0.7.apk --clobber
