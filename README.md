@@ -1,66 +1,164 @@
-# 🏋️ Lift — Open-Source Personal Gym Tracker (Android)
+# 🏋️ L!FT — Minimalist, Local-First Android Workout Tracker
 
-[![License: MIT](https://img.shields.io/badge/License-MIT-emerald.svg)](https://opensource.org/licenses/MIT)
-[![Download APK](https://img.shields.io/badge/Download%20APK-v1.0.2-success.svg?logo=android)](https://github.com/NoroThinksHeCanCode/lift/releases/latest/download/Lift-v1.0.2.apk)
-[![Platform](https://img.shields.io/badge/Platform-Android-blue.svg)](https://www.android.com/)
-[![React Native](https://img.shields.io/badge/React%20Native-0.88-61DAFB.svg)](https://reactnative.dev/)
-[![Expo](https://img.shields.io/badge/Expo-SDK%2058-white.svg)](https://expo.dev/)
-[![TypeScript](https://img.shields.io/badge/TypeScript-6.0-3178C6.svg)](https://www.typescriptlang.org/)
-[![Storage](https://img.shields.io/badge/Storage-Local%20SQLite-yellow.svg)](https://docs.expo.dev/versions/latest/sdk/sqlite/)
+<p align="center">
+  <img src="./assets/icon.png" alt="L!FT Icon" width="120" height="120" style="border-radius: 24px;" />
+</p>
 
-**Lift** is a minimalist, local-first gym lift tracking application built for Android lifters who value focus, battery efficiency, and zero cloud friction. Designed with a true OLED dark theme, high-contrast typography, and deep Android native integration.
+<p align="center">
+  <b>A distraction-free, local-first gym tracker engineered for lifters.</b><br />
+  Pure pitch-black AMOLED dark mode, on-device voice logging, double progression engine, smart plate calculator, and zero subscription paywalls.
+</p>
 
----
+<p align="center">
+  <a href="https://github.com/NoroThinksHeCanCode/lift/releases/latest/download/Lift-v1.0.7.apk"><img src="https://img.shields.io/badge/Download%20APK-v1.0.7-10B981.svg?style=for-the-badge&logo=android&logoColor=white" alt="Download APK" /></a>
+  <a href="https://github.com/NoroThinksHeCanCode/lift/releases"><img src="https://img.shields.io/badge/Release-v1.0.7-06B6D4.svg?style=for-the-badge" alt="Release v1.0.7" /></a>
+  <a href="LICENSE"><img src="https://img.shields.io/badge/License-MIT-yellow.svg?style=for-the-badge" alt="License: MIT" /></a>
+</p>
 
-## ✨ Features
-
-- ⏱️ **Workout Timer & Minimizable Active Bar**: Non-drifting elapsed session timer resilient across screen locks.
-- 🎯 **Double Progression & Progressive Overload Engine**: Prompts you to step up weight (+5 lbs / +2.5 kg) the moment you hit the ceiling of your target rep range.
-- 📊 **RPE & RIR Exertion Tracking**: Log Rating of Perceived Exertion (1–10) or Reps in Reserve (0–4) for every set.
-- ⚙️ **Gym Machine Variations**: Track separate seat heights, pulley ratios (e.g. 2:1 cable), and PRs across specific machine brands (Hammer Strength, Life Fitness, Cybex).
-- 📅 **Interactive Workout Calendar**: Monthly calendar grid highlighting training frequency, workout duration, and volume.
-- ⚡ **Fitbit / Google Health Connect Integration**: Imports sleep time, recovery readiness score, daily steps, and resting heart rate directly into an actionable training readiness widget.
-- 📲 **Interactive Android Home Screen Widget**: Log sets and adjust weight/reps directly from your Android home screen without opening the app.
-- 🔔 **Android Notification Shade Bar**: Pinned ongoing workout notification bar with quick set check-off and rest countdown controls.
-- 🏆 **Rewarding PR Milestone Notifications**: Gold trophy celebration with delta weight increase and multi-pulse haptics.
-- ⏱️ **Customizable Rest Timer**: Inline countdown with +15s / -15s quick adjustments and per-exercise remembered durations.
-- 💿 **Plate & 1RM Calculators**: Visual barbell sleeve loading diagram (lbs & kg) + scientific Epley and Brzycki one-rep max percentages.
-- 📥 **CSV Data Export & Import**: Full data portability. Export and import workouts via standard spreadsheet formats compatible with Excel, Google Sheets, Strong, and Hevy.
-- 🖤 **OLED Dark Minimalist Design**: Ultra-clean true black (`#08090B`) palette with razor-sharp tabular typography and subtle mint accents.
+<p align="center">
+  <img src="https://img.shields.io/badge/Platform-Android%2011+-3DDC84.svg?logo=android&logoColor=white" alt="Platform" />
+  <img src="https://img.shields.io/badge/React%20Native-0.88-61DAFB.svg?logo=react&logoColor=white" alt="React Native" />
+  <img src="https://img.shields.io/badge/Expo-SDK%2058-000000.svg?logo=expo&logoColor=white" alt="Expo" />
+  <img src="https://img.shields.io/badge/TypeScript-5.9-3178C6.svg?logo=typescript&logoColor=white" alt="TypeScript" />
+  <img src="https://img.shields.io/badge/Database-Local%20SQLite-003B57.svg?logo=sqlite&logoColor=white" alt="SQLite" />
+  <img src="https://img.shields.io/badge/Speech-On--Device%20Offline-FF6B6B.svg" alt="Offline Speech" />
+</p>
 
 ---
 
-## 🚀 Getting Started
+## ⚡ Why L!FT?
 
-### Prerequisites
+Most modern workout tracking apps are cluttered with social feeds, mandatory accounts, cloud sync latencies, expensive monthly subscriptions, and bright white interfaces that drain battery. 
+
+**L!FT** is built with a different philosophy:
+- **Zero Cloud & Zero Telemetry**: Your data lives only on your device in a local SQLite database. No accounts, no subscriptions, no tracking, works completely offline in basement gyms or airplane mode.
+- **Pure AMOLED Pitch Black (`#000000`)**: Minimalist, high-contrast Instagram-style dark mode engineered for maximum OLED battery savings and zero gym glare.
+- **Engineered for Lifters**: Double progression prompts, gym plate inventory math, exercise machine seat memory, joint action tagging, and hands-free voice logging.
+
+---
+
+## ✨ Core Features
+
+### 🎙️ Hands-Free Offline Voice Logging (NEW in v1.0.7)
+Log sets between heavy efforts without having to tap on the screen with chalky or sweaty hands:
+- **100% On-Device Speech Recognition**: Leverages Android's native `SpeechRecognizer` (`EXTRA_PREFER_OFFLINE = true`). Zero cloud audio streaming, zero latency, zero privacy concerns.
+- **Gym-Native Natural Speech Parser (`parseGymSpeech`)**:
+  - **Weight + Reps**: *"225 for 8"*, *"100 kg 10 reps"*, *"185 by 5"*, *"80 x 12"*, *"50 pounds 15 reps"*
+  - **Barbell Plate Slang**: *"two plates for 10"* (auto-converts to 225 lbs / 100 kg), *"one plate for 12"* (135 lbs / 60 kg), *"three plates for 5"* (315 lbs / 140 kg)
+  - **Bodyweight Sets**: *"bodyweight for 15"*, *"body weight 12 reps"* (logs 0 lbs/kg with reps)
+  - **Carryover Weights**: *"same weight for 8"*, *"just 10 reps"* (inherits weight from target set)
+  - **Decimals & Half-Kilos**: *"twenty two and a half for 10"* (parses to 22.5)
+  - **Spoken Compounds**: *"two twenty five for 8"* -> 225 lbs × 8
+  - **RPE / RIR**: *"225 for 8 RPE 8"*, *"100 for 6 at 2 RIR"*
+- **Pulsing Mic Visualizer**: Interactive audio RMS-reactive microphone animation, real-time live transcript display, detected stats preview pill, target exercise switcher, and instant auto-rest timer trigger.
+
+---
+
+### 🖤 AMOLED Pure Black Aesthetic
+- True `#000000` background across all screens, modals, cards, and toolbars.
+- Ultra-sharp typography with tabular numeric alignment (`fontVariant: ['tabular-nums']`) for weights, reps, and timers.
+- Subtle emerald (`#10B981`) and cyan (`#06B6D4`) accent palette with zero visual bloat.
+
+---
+
+### 📋 Full Routine Management & Routine Editing (v1.0.6)
+- **Comprehensive Routine Editor**: Create and edit routines anytime — rename routine, add custom description, add or remove exercises, reorder movements, and customize default sets and target rep ranges per exercise.
+- **Quick-Start & Ad-Hoc Sessions**: Start an empty workout or jump straight into a saved routine (Push, Pull, Legs, Upper, Lower, etc.).
+
+---
+
+### 🎯 Double Progression & Progressive Overload Engine
+- Set custom target rep ranges for individual exercises or lock a universal rep bracket across your entire workout (e.g. 8–12 reps).
+- The moment you complete a set at the top of your target rep range, L!FT prompts you with a 1-tap progressive overload increase (+5 lbs / +2.5 kg) for your subsequent sets.
+
+---
+
+### ⏱️ Rest Timer with Instant ±30s Stepper Controls
+- **Unified Rest Duration**: Configure your default rest duration in Tools, or customize it dynamically per workout.
+- **Quick Adjust Stepper Toolbar**: Instant `-30s` and `+30s` stepper buttons right in the active workout toolbar to adapt rest times on the fly without interrupting your session.
+- **Auto-Countdown**: Starts automatically whenever a set is checked off or logged via voice.
+
+---
+
+### 🏆 Floating PR Toast & Dynamic 1RM Estimation
+- Replaced disruptive full-screen popups with an elegant, non-intrusive floating top banner with haptic feedback.
+- Instantly calculates and displays your **Estimated 1-Rep Max** alongside the newly achieved weight or rep PR.
+
+---
+
+### 📊 Post-Workout Summary Card & PR Calendar
+- **Workout Summary Card**: End-of-workout debrief detailing total elapsed time, total volume moved, sets completed, and all new PRs hit during the session.
+- **Interactive Calendar**: Visual monthly training frequency heat map with PR workout days highlighted in distinct glowing gold.
+
+---
+
+### 📝 Per-Exercise Notes & Machine Seat Memory
+- **Per-Exercise Notes**: Attach persistent notes directly to any exercise (e.g., grip width, warmup cues, tempo reminders).
+- **Machine Variant Tracking**: Remember seat heights, pin settings, and pulley ratios across different machine brands (Hammer Strength, Life Fitness, Cybex, etc.).
+
+---
+
+### 🦴 Joint Action & Anatomical Classification
+- Classify exercises by their biomechanical **Joint Action** (e.g., *Flexion, Extension, Abduction, Adduction, Horizontal Adduction, Scapular Retraction, Plantarflexion*).
+- Comprehensive equipment categories: *Barbell, Dumbbell, Machine, Cable, Bodyweight, Smith Machine, Weighted Bodyweight*.
+
+---
+
+### 💿 Smart Plate Inventory Calculator & 1RM Suite
+- **Inventory-Aware Sleeve Math**: Enter your gym's available plates (pairs of 45s, 35s, 25s, 10s, 5s, 2.5s or 20kg, 15kg, 10kg, 5kg, 2.5kg, 1.25kg) and barbell tare weight (45 lbs / 20 kg). L!FT tells you *exactly* what plates to stack per side.
+- **One-Rep Max Calculator**: Calculate 1RM using scientific Epley and Brzycki formulas, accompanied by a complete percentage training breakdown (50% to 95%).
+
+---
+
+### 📲 Android Home Screen Widget & Notifications
+- **Interactive AppWidget**: View active workout progress and log sets directly from your Android launcher.
+- **Pinned Notification Shade Bar**: Ongoing foreground service notification keeping the rest timer countdown and active set status visible even with the screen locked.
+
+---
+
+### 💾 100% Data Portability (CSV Export & Import)
+- Export your complete workout history, exercises, and sets into clean CSV format anytime.
+- Import data from spreadsheets or migrate seamlessly from Strong and Hevy.
+
+---
+
+## 📥 Download & Installation
+
+### Option 1: Direct Standalone APK (Recommended)
+Download the latest pre-compiled standalone release APK directly from GitHub:
+
+👉 [**Download Lift-v1.0.7.apk**](https://github.com/NoroThinksHeCanCode/lift/releases/download/v1.0.7/Lift-v1.0.7.apk) *(~87 MB)*
+
+1. Open the downloaded `.apk` file on your Android device.
+2. If prompted, allow "Install unknown apps" for your browser/file manager.
+3. Install and start lifting!
+
+---
+
+### Option 2: Build From Source
+
+#### Prerequisites
 - Node.js (v20+ recommended)
-- Android phone with the [Expo Go app](https://play.google.com/store/apps/details?id=host.exp.exponent) installed
+- Java 17 (JDK)
+- Android SDK & Build Tools (API 34+)
 
-### Installation & Local Run
 ```bash
-# Clone the repository
-git clone https://github.com/YOUR_USERNAME/lift.git
+# 1. Clone the repository
+git clone https://github.com/NoroThinksHeCanCode/lift.git
 cd lift
 
-# Install dependencies
+# 2. Install dependencies
 npm install
 
-# Start the Expo development server
+# 3. Run in Expo development mode
 npx expo start
+
+# 4. Or compile a release APK locally using Gradle
+cd android
+chmod +x gradlew
+./gradlew assembleRelease -Pandroid.enableMinifyInReleaseBuilds=false
 ```
-Scan the displayed QR code with **Expo Go** on your Android phone to launch the app instantly.
-
----
-
-## 📦 Building a Standalone Android APK
-
-Lift comes pre-configured with `eas.json` for one-command standalone APK generation:
-
-```bash
-# Build standalone .apk using EAS Cloud Build
-npx eas build -p android --profile preview
-```
-Once the build completes, EAS prints a direct download link and QR code to install the `.apk` directly onto your Android device.
+The compiled APK will be generated at `android/app/build/outputs/apk/release/app-release.apk`.
 
 ---
 
@@ -68,39 +166,81 @@ Once the build completes, EAS prints a direct download link and QR code to insta
 
 ```
 lift/
-├── App.tsx                     # Main tab navigation and global providers
-├── app.json                    # Expo & Android native configuration
-├── eas.json                    # Standalone APK build profile
-└── src/
-    ├── constants/
-    │   ├── theme.ts            # High-contrast OLED dark color system
-    │   └── presetExercises.ts  # Pre-seeded compound and isolation exercise library
-    ├── db/
-    │   └── database.ts         # SQLite tables, migrations, PR calculation engine
-    ├── context/
-    │   ├── WorkoutContext.tsx  # Active session state, elapsed timer, overload engine
-    │   └── SettingsContext.tsx # User preferences (lbs/kg, RPE/RIR scale, rest duration)
-    ├── services/
-    │   ├── csvService.ts       # CSV export & import with file picker
-    │   ├── healthConnect.ts    # Google Health Connect / Fitbit Air readiness sync
-    │   ├── notificationService.ts # Android ongoing notification bar manager
-    │   └── widgetService.ts    # Android Home Screen AppWidget data bridge
-    ├── components/
-    │   ├── workout/            # ActiveWorkoutModal, SetRow, OverloadModal, PRModal, RestTimer
-    │   ├── history/            # WorkoutCalendarView
-    │   ├── health/             # ReadinessCard (Fitbit / Health Connect)
-    │   ├── exercises/          # MachineSelectorModal, ExerciseSelector, CreateCustom
-    │   ├── plates/             # PlateCalculatorModal (visual barbell sleeve)
-    │   ├── calculator/         # OneRepMaxModal (Epley/Brzycki formulas)
-    │   └── charts/             # LineChart and VolumeBarChart (SVG)
-    └── screens/
-        ├── WorkoutsScreen.tsx  # Quick start, routines list, readiness card
-        ├── HistoryScreen.tsx   # Calendar view, past workout log, weekly volume
-        ├── ExercisesScreen.tsx # Filterable exercise library with 1RM line charts
-        └── ToolsScreen.tsx     # Plate & 1RM calculators, CSV backup, preferences
+├── android/
+│   ├── app/src/main/
+│   │   ├── AndroidManifest.xml          # Record audio & speech queries permissions
+│   │   └── java/com/lift/app/
+│   │       ├── LiftSpeechModule.kt      # Native Android SpeechRecognizer module (offline)
+│   │       ├── LiftNativeModule.kt      # Android widget & notification bridge
+│   │       ├── LiftPackage.kt           # React Native native module registry
+│   │       └── LiftAppWidgetProvider.kt # Android AppWidget launcher provider
+├── src/
+│   ├── constants/
+│   │   ├── theme.ts                     # High-contrast AMOLED black palette (#000000)
+│   │   └── presetExercises.ts           # Pre-seeded exercises with joint actions & muscles
+│   ├── types/
+│   │   └── index.ts                     # Strong TypeScript definitions for sets, routines, PRs
+│   ├── db/
+│   │   └── database.ts                  # SQLite tables, queries, migrations, PR calculation
+│   ├── context/
+│   │   ├── WorkoutContext.tsx           # Active session state, timer, overload engine, PRs
+│   │   └── SettingsContext.tsx          # User preferences (units, rest timers, rep ranges)
+│   ├── services/
+│   │   ├── voiceLogger.ts               # Offline gym speech parser & speech event listener
+│   │   ├── widgetService.ts             # Home screen widget state synchronization
+│   │   ├── notificationService.ts       # Ongoing workout notification manager
+│   │   └── csvService.ts                # CSV import and export engine
+│   ├── utils/
+│   │   ├── haptics.ts                   # Native tactile feedback triggers
+│   │   ├── plateCalculator.ts           # Barbell plate inventory solver
+│   │   └── oneRepMax.ts                 # Epley & Brzycki 1RM estimation formulas
+│   ├── components/
+│   │   ├── workout/
+│   │   │   ├── VoiceLogModal.tsx        # Interactive pulsing mic & transcript preview
+│   │   │   ├── ActiveWorkoutModal.tsx   # Core active workout logging interface
+│   │   │   ├── ActiveWorkoutBar.tsx     # Minimized bottom session bar
+│   │   │   ├── SetRow.tsx               # High-contrast set logging row with PR checks
+│   │   │   ├── RestTimerModal.tsx       # Rest timer banner & countdown
+│   │   │   ├── RestTimerPickerModal.tsx # Rest duration configuration modal
+│   │   │   ├── RepRangePickerModal.tsx  # Min/max target rep range picker
+│   │   │   ├── ExerciseNoteModal.tsx    # Per-exercise notes editor
+│   │   │   ├── PRCelebrationModal.tsx   # Top floating PR celebration toast
+│   │   │   ├── ProgressiveOverloadModal.tsx # Weight step-up prompt
+│   │   │   └── WorkoutSummaryModal.tsx  # End-of-workout debrief card
+│   │   ├── exercises/
+│   │   │   ├── ExerciseSelectorModal.tsx
+│   │   │   ├── MachineSelectorModal.tsx
+│   │   │   └── CreateExerciseModal.tsx
+│   │   ├── history/
+│   │   │   └── WorkoutCalendarView.tsx  # Monthly calendar with PR day highlights
+│   │   ├── plates/
+│   │   │   └── PlateCalculatorModal.tsx # Barbell sleeve visualizer with plate inventory
+│   │   ├── calculator/
+│   │   │   └── OneRepMaxModal.tsx       # 1RM calculator with percentage breakdown
+│   │   └── common/
+│   │       ├── NamePromptModal.tsx      # Welcome name prompt
+│   │       ├── Badge.tsx
+│   │       └── Button.tsx
+│   └── screens/
+│       ├── WorkoutsScreen.tsx           # Quick start, routine builder & routine editor
+│       ├── HistoryScreen.tsx            # Past workouts, calendar heat map & volume
+│       ├── ExercisesScreen.tsx          # Filterable exercise library & progress charts
+│       └── ToolsScreen.tsx              # Plate calculator, 1RM, rest settings, CSV backup
+└── .github/workflows/
+    └── build-apk.yml                    # Automated GitHub Actions standalone APK CI/CD
 ```
 
 ---
 
+## 🔒 Privacy & Local-First Guarantee
+
+- **No Remote Servers**: No account registration, no tracking SDKs, no Google Analytics, no third-party APIs.
+- **No Cloud Speech**: The voice logger uses Android's local on-device speech engine (`RecognizerIntent.EXTRA_PREFER_OFFLINE`). Your voice never leaves your phone.
+- **Your Data Stays Yours**: Full SQLite database stored in your app's sandboxed storage. One-tap export to CSV whenever you want to backup or analyze your data.
+
+---
+
 ## 📄 License
-This project is open source and available under the [MIT License](LICENSE).
+
+This project is licensed under the [MIT License](LICENSE).
+Feel free to fork, modify, and build upon it!
